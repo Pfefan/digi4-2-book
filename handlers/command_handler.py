@@ -46,7 +46,7 @@ class Handler:
             print("ID                 Book Name")
             print("-" * 50)
             for book in data:
-                print(f"{book[0].strip():>4}   {book[1].strip()}")
+                print(f"{book[0].strip():>4}   {book[1].strip()}    {book[2].strip()}")
             print("-" * 50)
         else:
             print("No data found!!\n")
