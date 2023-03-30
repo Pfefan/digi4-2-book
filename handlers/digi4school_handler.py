@@ -1,3 +1,4 @@
+"""digi4 school handler"""
 import os
 
 import requests
@@ -58,32 +59,16 @@ class Digi4school:
         url = self.book_url + book_id
         down_dir = f'download/{book_id}'
 
-        cookies_dict = requests.utils.dict_from_cookiejar(self.session.cookies)
-        cookies = requests.utils.cookiejar_from_dict(cookies_dict)
+        cookies_request = requests.get(url, timeout=10)
 
-        
-        url = "https://a.digi4school.at/ebook/7553/"
-
-        response = requests.get(url, cookies=self.session.cookies ,allow_redirects=True)
-
-        initiator_chain = []
-
-        for redirect in response.history:
-            initiator_chain.append(redirect.url)
-
-        initiator_chain.append(response.url)
-
-        print(initiator_chain)
-
-        digi4s = cookies.get("digi4s")
-        ad_session_id = cookies.get("ad_session_id")
-        print(ad_session_id)
-        print(digi4s)
+        cookies = self.session.cookies.get_dict()
+        digi4b = "2296596057%2c7553%2c22s5bzuagyky%2c252212%20{254%201679749609%209073F77CCF274DB97BD88361389CEE0538938F3B}"
 
         headers = {
-            'Cookie': 'digi4b="2296329404%2c7553%2c22s5bzuagyky%2c252212%20{261%201679642398%20AC09555B659FA11FB163DACED7E711E8A4426B7F}"; ad_session_id="%s"; digi4s="%s"' % (ad_session_id, digi4s),
+            'Cookie': 'digi4b={digi4b}; digi4s={digi4s}; ad_session_id={ad_session_id}'.format(digi4b=digi4b, digi4s=cookies["digi4s"], ad_session_id=cookies["ad_session_id"]),
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
         }
+
         counter = 1
 
         os.makedirs(down_dir)
@@ -98,8 +83,8 @@ class Digi4school:
 
             with open(f"{down_dir}/{counter}.svg", "w+", encoding="utf8") as f:
                 f.write(response.text)
+            print(response.content)
 
             counter += 1
-
 
         print(f"All SVG files for book {book_id} have been downloaded to {down_dir}.")
