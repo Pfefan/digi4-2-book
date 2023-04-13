@@ -53,8 +53,9 @@ class Digi4school:
             href = a_tag.get('href')
 
             data_id = a_tag['data-id']
+            data_code = a_tag['data-code']
             h1_text = a_tag.find('h1').text
-            books.append((data_id, h1_text, href))
+            books.append((data_id, data_code, h1_text, href))
 
         return books
 
@@ -119,7 +120,8 @@ class Digi4school:
         print("----------------------------------------------------------------------------")
 
 
-    def download_book(self, book_id):
+    def download_book(self, data):
+        print(data)
         url = self.book_url + book_id
         down_dir = f'download/{book_id}'
 
