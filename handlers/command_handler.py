@@ -12,6 +12,7 @@ class Handler:
         validconfig = Config().check_config()
         if validconfig:
             if self.digi4school.login_user():
+                self.digi4school.get_token()
                 self.handler()
             else:
                 self.config.warning("Invalid user name or password in config")
