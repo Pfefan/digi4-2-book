@@ -13,7 +13,6 @@ class Handler:
         validconfig = Config().check_config()
         if validconfig:
             if self.digi4school.login_user():
-                self.digi4school.get_token()
                 self.handler()
             else:
                 self.config.warning("Invalid user name or password in config")
@@ -45,7 +44,7 @@ class Handler:
     def list_books(self):
         data = self.digi4school.get_page()
         if len(data) > 0:
-            print("ID                 Book Name")
+            print("   ID                 Book Name")
             print("-" * 50)
             counter = 1
             for book in data:
