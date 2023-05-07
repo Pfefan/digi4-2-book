@@ -56,12 +56,12 @@ class Handler:
             print("No data found!!\n")
 
     def download_book(self, book_id):
-        if int(book_id) > len(self.bookdata) or int(book_id) < 0:
+        if int(book_id) < 0:
             print(len(self.bookdata))
             print("Invalid book_id")
             return
         
-        data = self.bookdata[int(book_id) + 1]
+        data = self.bookdata[int(book_id)-1]
         self.digi4school.download_book(data)
 
     def download_page(self, book_id, page_num):
