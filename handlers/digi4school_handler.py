@@ -1,7 +1,9 @@
 import os
+import re
 
 import requests
 from bs4 import BeautifulSoup as bs
+from requests.exceptions import HTTPError, RequestException
 from requests.utils import cookiejar_from_dict
 
 from handlers.config_handler import Config
@@ -59,74 +61,87 @@ class Digi4school:
 
         return books
 
-    def get_token(self, data):
-        # right now firstly the list-files has to be executed to get the cookies, i will change that in the future i am just
-        # trying to implement the feature right now, the request with the id needs the digi4s cookie from the home page
-        book_code_url = "https://digi4school.at/ebook/" + data[1]
-        lti_url = "https://a.digi4school.at/lti"
-
-        cookies = self.session.cookies.get_dict()
-
-        book_code_req = self.session.get(book_code_url)
-        print(book_code_req.content)
-        book_code_cookies = book_code_req.cookies.get_dict()
-
-        headers = {
-            'Host': 'a.digi4school.at',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/113.0',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Referer': 'https://kat.digi4school.at/',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Content-Length': '474',
-            'Origin': 'https://kat.digi4school.at',
-            'Connection': 'keep-alive',
-            'Cookie': f'digi4s={book_code_cookies["digi4s"]}',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-site'
-        }
-        print(book_code_cookies["digi4s"])
-        # this request takes the cookie from the book id request to get a new session_id token
-        first_lti_req = self.session.get(lti_url, headers=headers)
-        print(first_lti_req.status_code)
-        print(self.session.cookies.get_dict())
-        
-        print(first_lti_req.cookies.get_dict())
-
     def download_book(self, data):
         url = self.book_display_url + data[0]
         down_dir = f'download/{data[0]}'
-        
+        os.makedirs(down_dir, exist_ok=True)
+
         self.get_token(data)
-
-        self.session.get(url, timeout=5)
-        if 1 == 3:
-            cookies = self.session.cookies.get_dict()
-            digi4b = "2299266513%2c7553%2c22s5bzuagyky%2c252212%20{982%201681475730%20B895BAA86447BB34B758579E37D1E600BB67619A}"
-
-            headers = {
-                'Cookie': 'digi4b="{digi4b}"; ad_session_id={ad_session_id}; digi4s={digi4s}'.format(digi4b=digi4b, ad_session_id=cookies["ad_session_id"], digi4s=cookies["digi4s"]),
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
-            }
-
-            counter = 1
-
-            os.makedirs(down_dir)
+        self.get_images(down_dir, url)
+        if self.get_svg(down_dir, url):
+            self.get_images(down_dir)
+        else:
+            print("Failed to download SVG files.")
 
 
-            while True:
-                file_url = f"{url}/{counter}.svg"
-                response = self.session.get(file_url, headers=headers, timeout=10)
+    def get_token(self, data):
+        # right now firstly the list-files has to be executed to get the cookies, i will change that in the future i am just
+        # trying to implement the feature right now, the request with the id needs the digi4s cookie from the home page
+        payload = {}
+        book_code_url = "https://digi4school.at/ebook/" + data[1]
+        lti_ad_session_url = "https://kat.digi4school.at/lti"
+        lti_cookie_url = "https://a.digi4school.at/lti"
 
+        book_code_req = self.session.get(book_code_url)
+
+        book_code_response = book_code_req.content.decode()
+        # gets all the data from the first lti response using regular expressions
+        for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", book_code_response):
+            payload[match[0]] = match[1]
+
+        # this request takes the cookie and the response data from the book id request to get a new ad_session_id token
+        first_lti_req = self.session.post(lti_ad_session_url, data=payload)
+
+        first_lti_response = first_lti_req.content.decode()
+        payload.clear()
+
+        # gets all the data from the first lti response using regular expressions
+        for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", first_lti_response):
+            payload[match[0]] = match[1]
+
+        # this request gets the cookies which are needed for reading out book data using the data from the first lti response
+        self.session.post(lti_cookie_url, data=payload)
+
+    def get_svg(self, down_dir, url):
+        counter = 1
+        while True:
+            file_url = f"{url}/{counter}.svg"
+            try:
+                response = self.session.get(file_url, timeout=5)
                 if response.status_code == 404:
                     break
+                response.raise_for_status()
+            except (RequestException, HTTPError):
+                print(f"Error downloading {file_url}")
+                return False
 
-                with open(f"{down_dir}/{counter}.svg", "w+", encoding="utf8") as f:
-                    f.write(response.text)
+            with open(f"{down_dir}/{counter}.svg", "w+", encoding="utf8") as svg_file:
+                svg_file.write(response.text)
 
-                counter += 1
+            counter += 1
+        return True
 
-        #print(f"All SVG files for book {book_id} have been downloaded to {down_dir}.")
+    def get_images(self, down_dir, url):
+        svg_files = os.listdir(down_dir)
+
+        for file in svg_files:
+            with open(f"{down_dir}/{file}", "rb") as svg_file:
+                svg_contents = svg_file.read().decode('utf-8')
+
+            # use a regular expression to extract all xlink:href attribute values from the image tags
+            pattern = r'<image\s.*?xlink:href="([^"]*)".*?>'
+            matches = re.findall(pattern, svg_contents)
+
+            # print the extracted xlink:href values
+            if matches:
+                for xlink_href in matches:
+                    response = self.session.get(f"{url}/{xlink_href}", timeout=5)
+                    dirname = f"{down_dir}/{os.path.dirname(xlink_href)}"
+                    os.makedirs(dirname, exist_ok=True)
+
+                    if response.status_code == 200:
+                        with open(os.path.join(dirname, os.path.basename(xlink_href)), "wb") as img_file:
+                            img_file.write(response.content)
+                    else:
+                        return False
+        return True

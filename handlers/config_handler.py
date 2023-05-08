@@ -1,12 +1,10 @@
 import configparser
 import os
 
-from logging_formater import ConfigLogger
-
 
 class Config:
     def __init__(self) -> None:
-        self.logger = ConfigLogger().setup()
+        pass
 
     def check_config(self) -> bool:
         if not os.path.isfile("config.ini"):
@@ -18,7 +16,7 @@ class Config:
             }
             with open('config.ini', 'w+', encoding="utf-8") as configfile:
                 config.write(configfile)
-            self.logger.warning("No Config file!!")
+            print("No Config file!!")
             return False
         else:
             config = configparser.ConfigParser()
@@ -26,7 +24,7 @@ class Config:
             config = config['DEFAULT']
 
             if config["email"] == "email" or config["password"] == "password":
-                self.logger.warning("Config not set!!!")
+                print("Config not set!!!")
                 return False
 
             return True

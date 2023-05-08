@@ -1,11 +1,8 @@
 from handlers.config_handler import Config
 from handlers.digi4school_handler import Digi4school
-from logging_formater import ConfigLogger
-
 
 class Handler:
     def __init__(self) -> None:
-        self.config = ConfigLogger().setup()
         self.digi4school = Digi4school()
         self.bookdata = []
 
@@ -15,7 +12,7 @@ class Handler:
             if self.digi4school.login_user():
                 self.handler()
             else:
-                self.config.warning("Invalid user name or password in config")
+                print("Invalid user name or password in config")
 
 
     def handler(self):
