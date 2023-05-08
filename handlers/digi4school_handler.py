@@ -1,15 +1,24 @@
-import requests
-from requests_html import HTMLSession
-from handlers.config_handler import Config
-from bs4 import BeautifulSoup as bs
 import os
+import re
+
+import requests
+from bs4 import BeautifulSoup as bs
+from requests.exceptions import HTTPError, RequestException
+from requests.utils import cookiejar_from_dict
+
+from handlers.config_handler import Config
+
 
 class Digi4school:
     def __init__(self):
-        self.session = None
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
+        })
         self.login_url = "https://digi4school.at/br/xhr/login"
         self.books_list_url = "https://digi4school.at/ebooks"
-        self.book_url = "https://a.digi4school.at/ebook/"
+        self.book_display_url = "https://a.digi4school.at/ebook/"
+        self.token_url = "https://a.digi4school.at/lti"
 
         os.makedirs('download', exist_ok=True)
 
@@ -22,10 +31,9 @@ class Digi4school:
         data = Config().get_config()
         payload["email"] = data["email"]
         payload["password"] = data["password"]
-        response = requests.post(self.login_url, data=payload, timeout=5)
-    
+        response = self.session.post(self.login_url, data=payload, timeout=5)
+
         if str(response.content, 'utf-8') == "OK":
-            self.session = response
             return True
         elif str(response.content, 'utf-8') == "KO":
             return False
@@ -35,7 +43,7 @@ class Digi4school:
         if self.session is None:
             raise ValueError("Session is not initialized.")
 
-        response = requests.get(self.books_list_url, cookies=self.session.cookies, timeout=5)
+        response = self.session.get(self.books_list_url, timeout=5)
 
         soup = bs(response.content, 'html.parser')
 
@@ -44,36 +52,96 @@ class Digi4school:
         a_tags = shelf_div.find_all('a')
 
         for a_tag in a_tags:
+            href = a_tag.get('href')
+
             data_id = a_tag['data-id']
+            data_code = a_tag['data-code']
             h1_text = a_tag.find('h1').text
-            books.append((data_id, h1_text))
+            books.append((data_id, data_code, h1_text, href))
 
         return books
 
+    def download_book(self, data):
+        url = self.book_display_url + data[0]
+        down_dir = f'download/{data[0]}'
+        os.makedirs(down_dir, exist_ok=True)
 
-    def download_book(self, book_id):
-        url = self.book_url + book_id
-        down_dir = f'download/{book_id}'
+        self.get_token(data)
+        self.get_images(down_dir, url)
+        if self.get_svg(down_dir, url):
+            self.get_images(down_dir)
+        else:
+            print("Failed to download SVG files.")
+
+
+    def get_token(self, data):
+        # right now firstly the list-files has to be executed to get the cookies, i will change that in the future i am just
+        # trying to implement the feature right now, the request with the id needs the digi4s cookie from the home page
+        payload = {}
+        book_code_url = "https://digi4school.at/ebook/" + data[1]
+        lti_ad_session_url = "https://kat.digi4school.at/lti"
+        lti_cookie_url = "https://a.digi4school.at/lti"
+
+        book_code_req = self.session.get(book_code_url)
+
+        book_code_response = book_code_req.content.decode()
+        # gets all the data from the first lti response using regular expressions
+        for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", book_code_response):
+            payload[match[0]] = match[1]
+
+        # this request takes the cookie and the response data from the book id request to get a new ad_session_id token
+        first_lti_req = self.session.post(lti_ad_session_url, data=payload)
+
+        first_lti_response = first_lti_req.content.decode()
+        payload.clear()
+
+        # gets all the data from the first lti response using regular expressions
+        for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", first_lti_response):
+            payload[match[0]] = match[1]
+
+        # this request gets the cookies which are needed for reading out book data using the data from the first lti response
+        self.session.post(lti_cookie_url, data=payload)
+
+    def get_svg(self, down_dir, url):
         counter = 1
-
-        os.makedirs(down_dir)
-
-        session = HTMLSession()
-        response = session.get(url)
-
         while True:
             file_url = f"{url}/{counter}.svg"
-            response = session.get(file_url, cookies=self.session.cookies)
+            try:
+                response = self.session.get(file_url, timeout=5)
+                if response.status_code == 404:
+                    break
+                response.raise_for_status()
+            except (RequestException, HTTPError):
+                print(f"Error downloading {file_url}")
+                return False
 
-            # Save the SVG file
-            with open(f"{down_dir}/{counter}.svg", "wb") as f:
-                f.write(response.content)
-
-            # Exit loop if the file doesn't exist
-            if "404 - Not Found" in response.text:
-                break
+            with open(f"{down_dir}/{counter}.svg", "w+", encoding="utf8") as svg_file:
+                svg_file.write(response.text)
 
             counter += 1
+        return True
 
+    def get_images(self, down_dir, url):
+        svg_files = os.listdir(down_dir)
 
-        print(f"All SVG files for book {book_id} have been downloaded to {down_dir}.")
+        for file in svg_files:
+            with open(f"{down_dir}/{file}", "rb") as svg_file:
+                svg_contents = svg_file.read().decode('utf-8')
+
+            # use a regular expression to extract all xlink:href attribute values from the image tags
+            pattern = r'<image\s.*?xlink:href="([^"]*)".*?>'
+            matches = re.findall(pattern, svg_contents)
+
+            # print the extracted xlink:href values
+            if matches:
+                for xlink_href in matches:
+                    response = self.session.get(f"{url}/{xlink_href}", timeout=5)
+                    dirname = f"{down_dir}/{os.path.dirname(xlink_href)}"
+                    os.makedirs(dirname, exist_ok=True)
+
+                    if response.status_code == 200:
+                        with open(os.path.join(dirname, os.path.basename(xlink_href)), "wb") as img_file:
+                            img_file.write(response.content)
+                    else:
+                        return False
+        return True
