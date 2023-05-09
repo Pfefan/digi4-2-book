@@ -20,6 +20,8 @@ class Digi4school:
         self.book_display_url = "https://a.digi4school.at/ebook/"
         self.token_url = "https://a.digi4school.at/lti"
 
+        self.image_format = None
+
         os.makedirs('download', exist_ok=True)
 
 
@@ -67,9 +69,9 @@ class Digi4school:
         os.makedirs(down_dir, exist_ok=True)
 
         self.get_token(data)
-        self.get_images(down_dir, url)
+
         if self.get_svg(down_dir, url):
-            self.get_images(down_dir)
+            self.get_images(down_dir, url)
         else:
             print("Failed to download SVG files.")
 
@@ -103,16 +105,34 @@ class Digi4school:
         self.session.post(lti_cookie_url, data=payload)
 
     def get_svg(self, down_dir, url):
+        response = self.session.get(f"{url}/1.svg", timeout=5)
+        if response.status_code != 404:
+            file_url = f"{url}/{{}}.svg"
+            self.image_format = "{{}}"
+        else:
+            response = self.session.get(f"{url}1/1.svg", timeout=5)
+            if response.status_code != 404:
+                file_url = f"{url}/{{}}/{{}}.svg"
+                self.image_format = "{{}}/{{}}"
+            else:
+                parts = url.split('/')
+                file_url = f"{url}/{{}}/{parts[-1]}_{{}}.svg"
+                self.image_format = f"{{}}/{parts[-1]}_{{}}"
+
         counter = 1
         while True:
-            file_url = f"{url}/{counter}.svg"
+            file_url_with_counter = file_url.format(counter, counter)
+            print(file_url_with_counter)
             try:
-                response = self.session.get(file_url, timeout=5)
+                response = self.session.get(file_url_with_counter, timeout=5)
                 if response.status_code == 404:
+                    if counter == 1:
+                        return False
                     break
+
                 response.raise_for_status()
             except (RequestException, HTTPError):
-                print(f"Error downloading {file_url}")
+                print(f"Error downloading {file_url_with_counter}")
                 return False
 
             with open(f"{down_dir}/{counter}.svg", "w+", encoding="utf8") as svg_file:
@@ -120,6 +140,7 @@ class Digi4school:
 
             counter += 1
         return True
+
 
     def get_images(self, down_dir, url):
         svg_files = os.listdir(down_dir)
@@ -135,7 +156,7 @@ class Digi4school:
             # print the extracted xlink:href values
             if matches:
                 for xlink_href in matches:
-                    response = self.session.get(f"{url}/{xlink_href}", timeout=5)
+                    response = self.session.get(f"{url}/{os.path.basename(file)}/{xlink_href}", timeout=5)
                     dirname = f"{down_dir}/{os.path.dirname(xlink_href)}"
                     os.makedirs(dirname, exist_ok=True)
 
@@ -145,3 +166,6 @@ class Digi4school:
                     else:
                         return False
         return True
+
+    def pdf_merge(self, down_dir):
+        pass
