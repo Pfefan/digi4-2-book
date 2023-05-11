@@ -1,7 +1,9 @@
 import os
 import re
 import shutil
+import time
 import string
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from bs4 import BeautifulSoup as bs
@@ -69,6 +71,7 @@ class Digi4school:
         return books
 
     def download_book(self, data):
+        starttime = time.time()
         url = self.book_display_url + data[0]
         down_dir = f'download/{data[0]}'
         os.makedirs(down_dir, exist_ok=True)
@@ -79,6 +82,8 @@ class Digi4school:
                 self.pdf_merge(down_dir, data[2])
         else:
             print("Failed to download SVG files.")
+
+        print(f"took {time.time() - starttime}")
 
     def get_token(self, data):
         # right now firstly the list-files has to be executed to get the cookies, i will change that in the future i am just
@@ -174,32 +179,38 @@ class Digi4school:
                         return False
         return True
 
+    def svg_to_pdf(self, svg_file, svg_path):
+        drawing = svg2rlg(svg_file)
+        pdf_filename = os.path.splitext(os.path.basename(svg_file))[0] + '.pdf'
+        pdf_file = os.path.join(svg_path, 'temp_pdf', pdf_filename)
+        canvas_obj = canvas.Canvas(pdf_file, pagesize=A4)
+        page_width, page_height = A4
+        drawing_width, drawing_height = drawing.minWidth(), drawing.height
+        scale_factor = min(page_width / drawing_width, page_height / drawing_height)
+        drawing.width, drawing.height = drawing_width * scale_factor, drawing_height * scale_factor
+        drawing.scale(scale_factor, scale_factor)
+        drawing.drawOn(canvas_obj, x=0, y=0)
+        canvas_obj.save()
+        return pdf_file
+
     def pdf_merge(self, svg_path, filename):
-        svg_files = [os.path.join(svg_path, f) for f in os.listdir(svg_path) if f.endswith('.svg')]
+        svg_files = [os.path.join(svg_path, svg_filename) for svg_filename in os.listdir(svg_path) if svg_filename.endswith('.svg')]
         svg_files.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
+
         os.makedirs("output", exist_ok=True)
         os.makedirs(os.path.join(svg_path, "temp_pdf"), exist_ok=True)
 
-        # Validate the filename
         valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-        output_pdf = ''.join(c if c in valid_chars else '_' for c in filename) + ".pdf"
+        output_pdf = ''.join(c if c in valid_chars else '_' for c in filename)
         output_pdf = os.path.join("output", output_pdf)
 
         merger = PdfMerger()
 
-        # Convert each SVG file to PDF and add it to the merger
-        for svg_file in svg_files:
-            drawing = svg2rlg(svg_file)
-            pdf_filename = os.path.splitext(os.path.basename(svg_file))[0] + '.pdf'
-            pdf_file = os.path.join(svg_path, 'temp_pdf', pdf_filename)
-            canvas_obj = canvas.Canvas(pdf_file, pagesize=A4)
-            page_width, page_height = A4
-            drawing_width, drawing_height = drawing.minWidth(), drawing.height
-            scale_factor = min(page_width / drawing_width, page_height / drawing_height)
-            drawing.width, drawing.height = drawing_width * scale_factor, drawing_height * scale_factor
-            drawing.scale(scale_factor, scale_factor)
-            drawing.drawOn(canvas_obj, x=0, y=0)
-            canvas_obj.save()
-            merger.append(pdf_file)
+        # Convert each SVG file to PDF in parallel using a thread pool
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            pdf_files = executor.map(lambda svg_file: self.svg_to_pdf(svg_file, svg_path), svg_files)
+
+            for pdf_file in pdf_files:
+                merger.append(pdf_file)
 
         merger.write(output_pdf)
