@@ -1,10 +1,14 @@
 import os
 import re
+import shutil
 
 import requests
 from bs4 import BeautifulSoup as bs
+from PyPDF2 import PdfMerger
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from requests.exceptions import HTTPError, RequestException
-from requests.utils import cookiejar_from_dict
+from svglib.svglib import svg2rlg
 
 from handlers.config_handler import Config
 
@@ -20,7 +24,7 @@ class Digi4school:
         self.book_display_url = "https://a.digi4school.at/ebook/"
         self.token_url = "https://a.digi4school.at/lti"
 
-        self.image_format = None
+        self.image_url_only = None
 
         os.makedirs('download', exist_ok=True)
 
@@ -69,12 +73,13 @@ class Digi4school:
         os.makedirs(down_dir, exist_ok=True)
 
         self.get_token(data)
-
+        self.pdf_merge(down_dir)
         if self.get_svg(down_dir, url):
-            self.get_images(down_dir, url)
+            if self.get_images(down_dir, url):
+                self.pdf_merge(down_dir)
+
         else:
             print("Failed to download SVG files.")
-
 
     def get_token(self, data):
         # right now firstly the list-files has to be executed to get the cookies, i will change that in the future i am just
@@ -108,21 +113,20 @@ class Digi4school:
         response = self.session.get(f"{url}/1.svg", timeout=5)
         if response.status_code != 404:
             file_url = f"{url}/{{}}.svg"
-            self.image_format = "{{}}"
+            self.image_url_only = True
         else:
             response = self.session.get(f"{url}1/1.svg", timeout=5)
             if response.status_code != 404:
                 file_url = f"{url}/{{}}/{{}}.svg"
-                self.image_format = "{{}}/{{}}"
+                self.image_url_only = False
             else:
-                parts = url.split('/')
-                file_url = f"{url}/{{}}/{parts[-1]}_{{}}.svg"
-                self.image_format = f"{{}}/{parts[-1]}_{{}}"
+                print("failed to get url")
+                return False
+
 
         counter = 1
         while True:
             file_url_with_counter = file_url.format(counter, counter)
-            print(file_url_with_counter)
             try:
                 response = self.session.get(file_url_with_counter, timeout=5)
                 if response.status_code == 404:
@@ -142,11 +146,11 @@ class Digi4school:
         return True
 
 
-    def get_images(self, down_dir, url):
-        svg_files = os.listdir(down_dir)
+    def get_images(self, svg_dir, url):
+        svg_files = os.listdir(svg_dir)
 
         for file in svg_files:
-            with open(f"{down_dir}/{file}", "rb") as svg_file:
+            with open(f"{svg_dir}/{file}", "rb") as svg_file:
                 svg_contents = svg_file.read().decode('utf-8')
 
             # use a regular expression to extract all xlink:href attribute values from the image tags
@@ -156,8 +160,12 @@ class Digi4school:
             # print the extracted xlink:href values
             if matches:
                 for xlink_href in matches:
-                    response = self.session.get(f"{url}/{os.path.basename(file)}/{xlink_href}", timeout=5)
-                    dirname = f"{down_dir}/{os.path.dirname(xlink_href)}"
+                    if self.image_url_only:
+                        image_url = f"{url}/{xlink_href}"
+                    else:
+                        image_url = f"{url}/{os.path.basename(file)}/{xlink_href}"
+                    response = self.session.get(image_url, timeout=5)
+                    dirname = f"{svg_dir}/{os.path.dirname(xlink_href)}"
                     os.makedirs(dirname, exist_ok=True)
 
                     if response.status_code == 200:
@@ -167,5 +175,32 @@ class Digi4school:
                         return False
         return True
 
-    def pdf_merge(self, down_dir):
-        pass
+    def pdf_merge(self, svg_path):
+        svg_files = [os.path.join(svg_path, f) for f in os.listdir(svg_path) if f.endswith('.svg')]
+        svg_files.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
+
+
+        output_pdf = 'output.pdf'
+        merger = PdfMerger()
+        os.makedirs(os.path.join(svg_path, "temp_pdf"), exist_ok=True)
+        # Convert each SVG file to PDF and add it to the merger
+        for svg_file in svg_files:
+            drawing = svg2rlg(svg_file)
+            pdf_filename = os.path.splitext(os.path.basename(svg_file))[0] + '.pdf'
+            pdf_file = os.path.join(svg_path, 'temp_pdf', pdf_filename)
+            canvas_obj = canvas.Canvas(pdf_file, pagesize=A4)
+            page_width, page_height = A4
+            drawing_width, drawing_height = drawing.minWidth(), drawing.height
+            scale_factor = min(page_width / drawing_width, page_height / drawing_height)
+            drawing.width, drawing.height = drawing_width * scale_factor, drawing_height * scale_factor
+            drawing.scale(scale_factor, scale_factor)
+            drawing.drawOn(canvas_obj, x=0, y=0)
+            canvas_obj.save()
+            merger.append(pdf_file)
+
+        # Write the merged PDF file to disk
+        merger.write(output_pdf)
+
+        # Delete the output folder
+        # folder_to_delete = 'output_folder'
+        # shutil.rmtree(folder_to_delete)
