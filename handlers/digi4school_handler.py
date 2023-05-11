@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import string
 
 import requests
 from bs4 import BeautifulSoup as bs
@@ -73,11 +74,9 @@ class Digi4school:
         os.makedirs(down_dir, exist_ok=True)
 
         self.get_token(data)
-        self.pdf_merge(down_dir)
         if self.get_svg(down_dir, url):
             if self.get_images(down_dir, url):
-                self.pdf_merge(down_dir)
-
+                self.pdf_merge(down_dir, data[2])
         else:
             print("Failed to download SVG files.")
 
@@ -175,14 +174,19 @@ class Digi4school:
                         return False
         return True
 
-    def pdf_merge(self, svg_path):
+    def pdf_merge(self, svg_path, filename):
         svg_files = [os.path.join(svg_path, f) for f in os.listdir(svg_path) if f.endswith('.svg')]
         svg_files.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
-
-
-        output_pdf = 'output.pdf'
-        merger = PdfMerger()
+        os.makedirs("output", exist_ok=True)
         os.makedirs(os.path.join(svg_path, "temp_pdf"), exist_ok=True)
+
+        # Validate the filename
+        valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+        output_pdf = ''.join(c if c in valid_chars else '_' for c in filename) + ".pdf"
+        output_pdf = os.path.join("output", output_pdf)
+
+        merger = PdfMerger()
+
         # Convert each SVG file to PDF and add it to the merger
         for svg_file in svg_files:
             drawing = svg2rlg(svg_file)
@@ -198,9 +202,4 @@ class Digi4school:
             canvas_obj.save()
             merger.append(pdf_file)
 
-        # Write the merged PDF file to disk
         merger.write(output_pdf)
-
-        # Delete the output folder
-        # folder_to_delete = 'output_folder'
-        # shutil.rmtree(folder_to_delete)
