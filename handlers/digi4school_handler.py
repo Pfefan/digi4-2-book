@@ -1,9 +1,9 @@
 import os
 import re
 import shutil
-import time
 import string
-from concurrent.futures import ThreadPoolExecutor
+import time
+from concurrent.futures import ProcessPoolExecutor
 
 import requests
 from bs4 import BeautifulSoup as bs
@@ -75,15 +75,19 @@ class Digi4school:
         url = self.book_display_url + data[0]
         down_dir = f'download/{data[0]}'
         os.makedirs(down_dir, exist_ok=True)
-
+        print("gettings tokens", end="\r")
         self.get_token(data)
+        print("downloading svg files", end="\r")
         if self.get_svg(down_dir, url):
+            print("downloading images", end="\r")
             if self.get_images(down_dir, url):
-                self.pdf_merge(down_dir, data[2])
+                print("converting to pdf", end="\r")
+                self.convert_svg_to_pdf(down_dir, data[2])
         else:
             print("Failed to download SVG files.")
-
-        print(f"took {time.time() - starttime}")
+        shutil.rmtree(down_dir)
+        print(f"took {time.time() - starttime}", end="\r")
+        print("\n")
 
     def get_token(self, data):
         # right now firstly the list-files has to be executed to get the cookies, i will change that in the future i am just
@@ -179,6 +183,9 @@ class Digi4school:
                         return False
         return True
 
+    def svg_to_pdf_handler(self, svg_file, svg_path):
+        return self.svg_to_pdf(svg_file, svg_path)
+
     def svg_to_pdf(self, svg_file, svg_path):
         drawing = svg2rlg(svg_file)
         pdf_filename = os.path.splitext(os.path.basename(svg_file))[0] + '.pdf'
@@ -193,7 +200,7 @@ class Digi4school:
         canvas_obj.save()
         return pdf_file
 
-    def pdf_merge(self, svg_path, filename):
+    def convert_svg_to_pdf(self, svg_path, filename):
         svg_files = [os.path.join(svg_path, svg_filename) for svg_filename in os.listdir(svg_path) if svg_filename.endswith('.svg')]
         svg_files.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
 
@@ -201,16 +208,17 @@ class Digi4school:
         os.makedirs(os.path.join(svg_path, "temp_pdf"), exist_ok=True)
 
         valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-        output_pdf = ''.join(c if c in valid_chars else '_' for c in filename)
+        output_pdf = ''.join(c if c in valid_chars else '_' for c in filename) + ".pdf"
         output_pdf = os.path.join("output", output_pdf)
 
         merger = PdfMerger()
 
-        # Convert each SVG file to PDF in parallel using a thread pool
-        with ThreadPoolExecutor(max_workers=12) as executor:
-            pdf_files = executor.map(lambda svg_file: self.svg_to_pdf(svg_file, svg_path), svg_files)
+        # Convert each SVG file to PDF in parallel using a process pool
+        with ProcessPoolExecutor() as executor:
+            pdf_files = executor.map(self.svg_to_pdf_handler, svg_files, [svg_path]*len(svg_files))
 
             for pdf_file in pdf_files:
                 merger.append(pdf_file)
 
         merger.write(output_pdf)
+        merger.close()
