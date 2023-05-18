@@ -2,6 +2,8 @@ import os
 import re
 import shutil
 import string
+import time
+from concurrent.futures import ProcessPoolExecutor
 
 import requests
 from bs4 import BeautifulSoup as bs
@@ -23,7 +25,7 @@ class Digi4school:
         self.login_url = "https://digi4school.at/br/xhr/login"
         self.books_list_url = "https://digi4school.at/ebooks"
         self.book_display_url = "https://a.digi4school.at/ebook/"
-        self.token_url = "https://a.digi4school.at/lti"
+        self.hpthek_book = False
 
         self.image_url_only = None
 
@@ -69,16 +71,25 @@ class Digi4school:
         return books
 
     def download_book(self, data):
-        url = self.book_display_url + data[0]
+        starttime = time.time()
         down_dir = f'download/{data[0]}'
         os.makedirs(down_dir, exist_ok=True)
+        print("gettings tokens", end="\r")
+        url = self.get_token(data)
 
-        self.get_token(data)
+        print("downloading svg files", end="\r")
         if self.get_svg(down_dir, url):
+            print("downloading images", end="\r")
+
             if self.get_images(down_dir, url):
-                self.pdf_merge(down_dir, data[2])
+                print("converting to pdf", end="\r")
+
+                self.convert_svg_to_pdf(down_dir, data[2])
         else:
             print("Failed to download SVG files.")
+        shutil.rmtree(down_dir)
+        print(f"took {time.time() - starttime}", end="\r")
+        print("\n")
 
     def get_token(self, data):
         # right now firstly the list-files has to be executed to get the cookies, i will change that in the future i am just
@@ -87,6 +98,7 @@ class Digi4school:
         book_code_url = "https://digi4school.at/ebook/" + data[1]
         lti_ad_session_url = "https://kat.digi4school.at/lti"
         lti_cookie_url = "https://a.digi4school.at/lti"
+        hpthek_url = "https://a.hpthek.at/lti"
 
         book_code_req = self.session.get(book_code_url)
 
@@ -106,21 +118,43 @@ class Digi4school:
             payload[match[0]] = match[1]
 
         # this request gets the cookies which are needed for reading out book data using the data from the first lti response
-        self.session.post(lti_cookie_url, data=payload)
+        second_lti_req = self.session.post(lti_cookie_url, data=payload)
+        if second_lti_req.status_code == 403:
+            hpthek_resp = self.session.post(hpthek_url, data=payload)
+            self.hpthek_book = True
+            with open("response.html", "w+", encoding="utf-8") as f:
+                f.write(hpthek_resp.content.decode())
+            return "https://a.hpthek.at/ebook/164"
+        return self.book_display_url + data[0]
+        
 
     def get_svg(self, down_dir, url):
-        response = self.session.get(f"{url}/1.svg", timeout=5)
-        if response.status_code != 404:
-            file_url = f"{url}/{{}}.svg"
-            self.image_url_only = True
-        else:
-            response = self.session.get(f"{url}1/1.svg", timeout=5)
+        if not self.hpthek_book:
+            response = self.session.get(f"{url}/1.svg", timeout=5)
             if response.status_code != 404:
-                file_url = f"{url}/{{}}/{{}}.svg"
-                self.image_url_only = False
+                file_url = f"{url}/{{}}.svg"
+                self.image_url_only = True
             else:
-                print("failed to get url")
-                return False
+                response = self.session.get(f"{url}/1/1.svg", timeout=5)
+                if response.status_code != 404:
+                    file_url = f"{url}/{{}}/{{}}.svg"
+                    self.image_url_only = False
+                else:
+                    print("failed to get url")
+                    return False
+        else:
+            response = self.session.get(f"{url}/1.svg", timeout=5)
+            if response.status_code != 404:
+                file_url = f"{url}/{{}}.svg"
+                self.image_url_only = True
+            else:
+                response = self.session.get(f"{url}1/1.svg", timeout=5)
+                if response.status_code != 404:
+                    file_url = f"{url}/{{}}/{{}}.svg"
+                    self.image_url_only = False
+                else:
+                    print("failed to get url")
+                    return False
 
 
         counter = 1
@@ -174,32 +208,42 @@ class Digi4school:
                         return False
         return True
 
-    def pdf_merge(self, svg_path, filename):
-        svg_files = [os.path.join(svg_path, f) for f in os.listdir(svg_path) if f.endswith('.svg')]
+    def svg_to_pdf_handler(self, svg_file, svg_path):
+        return self.svg_to_pdf(svg_file, svg_path)
+
+    def svg_to_pdf(self, svg_file, svg_path):
+        drawing = svg2rlg(svg_file)
+        pdf_filename = os.path.splitext(os.path.basename(svg_file))[0] + '.pdf'
+        pdf_file = os.path.join(svg_path, 'temp_pdf', pdf_filename)
+        canvas_obj = canvas.Canvas(pdf_file, pagesize=A4)
+        page_width, page_height = A4
+        drawing_width, drawing_height = drawing.minWidth(), drawing.height
+        scale_factor = min(page_width / drawing_width, page_height / drawing_height)
+        drawing.width, drawing.height = drawing_width * scale_factor, drawing_height * scale_factor
+        drawing.scale(scale_factor, scale_factor)
+        drawing.drawOn(canvas_obj, x=0, y=0)
+        canvas_obj.save()
+        return pdf_file
+
+    def convert_svg_to_pdf(self, svg_path, filename):
+        svg_files = [os.path.join(svg_path, svg_filename) for svg_filename in os.listdir(svg_path) if svg_filename.endswith('.svg')]
         svg_files.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
+
         os.makedirs("output", exist_ok=True)
         os.makedirs(os.path.join(svg_path, "temp_pdf"), exist_ok=True)
 
-        # Validate the filename
         valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
         output_pdf = ''.join(c if c in valid_chars else '_' for c in filename) + ".pdf"
         output_pdf = os.path.join("output", output_pdf)
 
         merger = PdfMerger()
 
-        # Convert each SVG file to PDF and add it to the merger
-        for svg_file in svg_files:
-            drawing = svg2rlg(svg_file)
-            pdf_filename = os.path.splitext(os.path.basename(svg_file))[0] + '.pdf'
-            pdf_file = os.path.join(svg_path, 'temp_pdf', pdf_filename)
-            canvas_obj = canvas.Canvas(pdf_file, pagesize=A4)
-            page_width, page_height = A4
-            drawing_width, drawing_height = drawing.minWidth(), drawing.height
-            scale_factor = min(page_width / drawing_width, page_height / drawing_height)
-            drawing.width, drawing.height = drawing_width * scale_factor, drawing_height * scale_factor
-            drawing.scale(scale_factor, scale_factor)
-            drawing.drawOn(canvas_obj, x=0, y=0)
-            canvas_obj.save()
-            merger.append(pdf_file)
+        # Convert each SVG file to PDF in parallel using a process pool
+        with ProcessPoolExecutor() as executor:
+            pdf_files = executor.map(self.svg_to_pdf_handler, svg_files, [svg_path]*len(svg_files))
+
+            for pdf_file in pdf_files:
+                merger.append(pdf_file)
 
         merger.write(output_pdf)
+        merger.close()
