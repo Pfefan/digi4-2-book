@@ -25,7 +25,7 @@ class Digi4school:
         self.login_url = "https://digi4school.at/br/xhr/login"
         self.books_list_url = "https://digi4school.at/ebooks"
         self.book_display_url = "https://a.digi4school.at/ebook/"
-        self.token_url = "https://a.digi4school.at/lti"
+        self.hpthek_book = False
 
         self.image_url_only = None
 
@@ -72,16 +72,18 @@ class Digi4school:
 
     def download_book(self, data):
         starttime = time.time()
-        url = self.book_display_url + data[0]
         down_dir = f'download/{data[0]}'
         os.makedirs(down_dir, exist_ok=True)
         print("gettings tokens", end="\r")
-        self.get_token(data)
+        url = self.get_token(data)
+
         print("downloading svg files", end="\r")
         if self.get_svg(down_dir, url):
             print("downloading images", end="\r")
+
             if self.get_images(down_dir, url):
                 print("converting to pdf", end="\r")
+
                 self.convert_svg_to_pdf(down_dir, data[2])
         else:
             print("Failed to download SVG files.")
@@ -96,6 +98,7 @@ class Digi4school:
         book_code_url = "https://digi4school.at/ebook/" + data[1]
         lti_ad_session_url = "https://kat.digi4school.at/lti"
         lti_cookie_url = "https://a.digi4school.at/lti"
+        hpthek_url = "https://a.hpthek.at/lti"
 
         book_code_req = self.session.get(book_code_url)
 
@@ -115,21 +118,43 @@ class Digi4school:
             payload[match[0]] = match[1]
 
         # this request gets the cookies which are needed for reading out book data using the data from the first lti response
-        self.session.post(lti_cookie_url, data=payload)
+        second_lti_req = self.session.post(lti_cookie_url, data=payload)
+        if second_lti_req.status_code == 403:
+            hpthek_resp = self.session.post(hpthek_url, data=payload)
+            self.hpthek_book = True
+            with open("response.html", "w+", encoding="utf-8") as f:
+                f.write(hpthek_resp.content.decode())
+            return "https://a.hpthek.at/ebook/164"
+        return self.book_display_url + data[0]
+        
 
     def get_svg(self, down_dir, url):
-        response = self.session.get(f"{url}/1.svg", timeout=5)
-        if response.status_code != 404:
-            file_url = f"{url}/{{}}.svg"
-            self.image_url_only = True
-        else:
-            response = self.session.get(f"{url}1/1.svg", timeout=5)
+        if not self.hpthek_book:
+            response = self.session.get(f"{url}/1.svg", timeout=5)
             if response.status_code != 404:
-                file_url = f"{url}/{{}}/{{}}.svg"
-                self.image_url_only = False
+                file_url = f"{url}/{{}}.svg"
+                self.image_url_only = True
             else:
-                print("failed to get url")
-                return False
+                response = self.session.get(f"{url}/1/1.svg", timeout=5)
+                if response.status_code != 404:
+                    file_url = f"{url}/{{}}/{{}}.svg"
+                    self.image_url_only = False
+                else:
+                    print("failed to get url")
+                    return False
+        else:
+            response = self.session.get(f"{url}/1.svg", timeout=5)
+            if response.status_code != 404:
+                file_url = f"{url}/{{}}.svg"
+                self.image_url_only = True
+            else:
+                response = self.session.get(f"{url}1/1.svg", timeout=5)
+                if response.status_code != 404:
+                    file_url = f"{url}/{{}}/{{}}.svg"
+                    self.image_url_only = False
+                else:
+                    print("failed to get url")
+                    return False
 
 
         counter = 1
