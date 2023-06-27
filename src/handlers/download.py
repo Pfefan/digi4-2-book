@@ -10,20 +10,21 @@ class Download():
     def __init__(self, session) -> None:
         self.session = session
         self.image_url_only = False
+        self.hpthek_book = False
 
-    def main(self, data):
+    def main(self, data: list):
         starttime = time.time()
         down_dir = f'download/{data[0]}'
         os.makedirs(down_dir, exist_ok=True)
         print("gettings tokens", end="\r")
 
-        url = Authentication(self.session).get_token(data)
+        url, self.session, self.hpthek_book = Authentication(self.session).get_token(data)
 
         print("downloading svg files", end="\r")
-        if self.get_svg(down_dir, url):
+        if self.download_svg(down_dir, url):
             print("downloading images", end="\r")
 
-            if self.get_images(down_dir, url):
+            if self.download_images(down_dir, url):
                 print("converting to pdf", end="\r")
 
                 Convert().convert_svg_to_pdf(down_dir, data[2])
@@ -31,9 +32,9 @@ class Download():
             print("Failed to download SVG files.")
         shutil.rmtree(down_dir)
         print(f"took {time.time() - starttime}", end="\r")
-        print("\n")        
+        print("\n")
 
-    def get_svg(self, down_dir, url):
+    def download_svg(self, down_dir, url):
         if not self.hpthek_book:
             response = self.session.get(f"{url}/1.svg", timeout=5)
             if response.status_code != 404:
@@ -45,7 +46,7 @@ class Download():
                     file_url = f"{url}/{{}}/{{}}.svg"
                     self.image_url_only = False
                 else:
-                    print("failed to get url")
+                    print("failed to get url", end="\r")
                     return False
         else:
             response = self.session.get(f"{url}/1.svg", timeout=5)
@@ -58,7 +59,7 @@ class Download():
                     file_url = f"{url}/{{}}/{{}}.svg"
                     self.image_url_only = False
                 else:
-                    print("failed to get url")
+                    print("failed to get url", end="\r")
                     return False
 
 
@@ -84,7 +85,7 @@ class Download():
         return True
 
 
-    def get_images(self, svg_dir, url):
+    def download_images(self, svg_dir, url):
         svg_files = os.listdir(svg_dir)
 
         for file in svg_files:

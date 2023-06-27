@@ -22,13 +22,12 @@ class Authentication:
             return (False, self.session)
 
     def get_token(self, data):
-        # right now firstly the list-files has to be executed to get the cookies, i will change that in the future i am just
-        # trying to implement the feature right now, the request with the id needs the digi4s cookie from the home page
         payload = {}
         book_code_url = "https://digi4school.at/ebook/" + data[1]
         lti_ad_session_url = "https://kat.digi4school.at/lti"
         lti_cookie_url = "https://a.digi4school.at/lti"
         hpthek_url = "https://a.hpthek.at/lti"
+        book_display_url = "https://a.digi4school.at/ebook/"
 
         book_code_req = self.session.get(book_code_url)
 
@@ -47,10 +46,19 @@ class Authentication:
         for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", first_lti_response):
             payload[match[0]] = match[1]
 
-        # this request gets the cookies which are needed for reading out book data using the data from the first lti response
+        # this request saves the needed cookies in the session object which are needed to view the book
         second_lti_req = self.session.post(lti_cookie_url, data=payload)
+
+        second_lti_response = first_lti_req.content.decode()
+        payload.clear()
+
+        # gets all the data from the second lti response using regular expressions
+        for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", second_lti_response):
+            payload[match[0]] = match[1]
+
+        print(payload)
+
         if second_lti_req.status_code == 403:
             hpthek_resp = self.session.post(hpthek_url, data=payload)
-            self.hpthek_book = True
-            return "https://a.hpthek.at/ebook/164"   # actually return the right book id
-        return self.book_display_url + data[0]
+            return "https://a.hpthek.at/ebook/164", self.session, True   # TODO actually return the right book id
+        return book_display_url + data[0], self.session, False

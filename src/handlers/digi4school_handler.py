@@ -5,23 +5,19 @@ from bs4 import BeautifulSoup as bs
 
 
 class Digi4school:
-    def __init__(self, session):
-        self.session = session
+    def __init__(self):
         self.books_list_url = "https://digi4school.at/ebooks"
-        self.book_display_url = "https://a.digi4school.at/ebook/"
-        self.hpthek_book = False
 
         self.image_url_only = None
 
         os.makedirs('download', exist_ok=True)
 
     def get_books(self, session):
-        self.session = session
         books = []
-        if self.session is None:
+        if session is None:
             raise ValueError("Session is not initialized.")
 
-        response = self.session.get(self.books_list_url, timeout=5)
+        response = session.get(self.books_list_url, timeout=5)
 
         soup = bs(response.content, 'html.parser')
 
@@ -40,6 +36,8 @@ class Digi4school:
         return books
 
     def download_book(self, data, session):
-        self.session = session
+        if session is None:
+            raise ValueError("Session is not initialized.")
+
         Download(session).main(data)
         

@@ -9,7 +9,7 @@ class Handler:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
         })
-        self.digi4school = Digi4school(self.session)
+        self.digi4school = Digi4school()
         self.auth = Authentication(self.session)
 
     def main(self):
@@ -21,7 +21,6 @@ class Handler:
                 self.handler()
             else:
                 print("Invalid user name or password in config")
-
 
     def handler(self):
         print("Welcome to Digi4-books!!!\n")
@@ -64,7 +63,7 @@ class Handler:
             print("Invalid book_id")
             return
 
-        data = self.digi4school.get_books()[int(book_id)-1]
+        data = self.digi4school.get_books(self.session)[int(book_id)-1]
         self.digi4school.download_book(data, self.session)
 
     def download_page(self, book_id, page_num):
