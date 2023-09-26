@@ -56,7 +56,6 @@ class Authentication:
         for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", second_lti_response):
             payload[match[0]] = match[1]
 
-        print(payload)
 
         if second_lti_req.status_code == 403:
             hpthek_resp = self.session.post(hpthek_url, data=payload)

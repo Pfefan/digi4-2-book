@@ -2,13 +2,14 @@ import shutil
 import time
 import os
 import re
+import requests
 from requests.exceptions import HTTPError, RequestException
 from handlers.authentication import Authentication
 from handlers.pdf_convert import Convert
 
 class Download():
     def __init__(self, session) -> None:
-        self.session = session
+        self.session: requests.Session = session
         self.image_url_only = False
         self.hpthek_book = False
 
@@ -21,34 +22,24 @@ class Download():
         url, self.session, self.hpthek_book = Authentication(self.session).get_token(data)
 
         print("downloading svg files", end="\r")
-        if self.download_svg(down_dir, url):
+        svg_success = self.download_svg(down_dir, url)
+        if svg_success:
             print("downloading images", end="\r")
-
-            if self.download_images(down_dir, url):
+            img_success = self.download_images(down_dir, url)
+            if img_success:
                 print("converting to pdf", end="\r")
 
                 Convert().convert_svg_to_pdf(down_dir, data[2])
+                print(f"took {time.time() - starttime}", end="\r")
+                print("\n")
+            else:
+                print("Faled to download images.", end="\r")
         else:
-            print("Failed to download SVG files.")
+            print("Failed to download SVG files.", end="\r")
         shutil.rmtree(down_dir)
-        print(f"took {time.time() - starttime}", end="\r")
-        print("\n")
 
     def download_svg(self, down_dir, url):
-        if not self.hpthek_book:
-            response = self.session.get(f"{url}/1.svg", timeout=5)
-            if response.status_code != 404:
-                file_url = f"{url}/{{}}.svg"
-                self.image_url_only = True
-            else:
-                response = self.session.get(f"{url}/1/1.svg", timeout=5)
-                if response.status_code != 404:
-                    file_url = f"{url}/{{}}/{{}}.svg"
-                    self.image_url_only = False
-                else:
-                    print("failed to get url", end="\r")
-                    return False
-        else:
+        if self.hpthek_book:
             response = self.session.get(f"{url}/1.svg", timeout=5)
             if response.status_code != 404:
                 file_url = f"{url}/{{}}.svg"
@@ -61,7 +52,20 @@ class Download():
                 else:
                     print("failed to get url", end="\r")
                     return False
-
+    
+        else:
+            response = self.session.get(f"{url}/1.svg", timeout=5)
+            if response.status_code != 404:
+                file_url = f"{url}/{{}}.svg"
+                self.image_url_only = True
+            else:
+                response = self.session.get(f"{url}/1/1.svg", timeout=5)
+                if response.status_code != 404:
+                    file_url = f"{url}/{{}}/{{}}.svg"
+                    self.image_url_only = False
+                else:
+                    print("failed to get url", end="\r")
+                    return False
 
         counter = 1
         while True:
@@ -72,8 +76,8 @@ class Download():
                     if counter == 1:
                         return False
                     break
-
                 response.raise_for_status()
+
             except (RequestException, HTTPError):
                 print(f"Error downloading {file_url_with_counter}")
                 return False
@@ -95,14 +99,14 @@ class Download():
             # use a regular expression to extract all xlink:href attribute values from the image tags
             pattern = r'<image\s.*?xlink:href="([^"]*)".*?>'
             matches = re.findall(pattern, svg_contents)
+            # print(matches)
 
-            # print the extracted xlink:href values
             if matches:
                 for xlink_href in matches:
                     if self.image_url_only:
                         image_url = f"{url}/{xlink_href}"
                     else:
-                        image_url = f"{url}/{os.path.basename(file)}/{xlink_href}"
+                        image_url = f"{url}/{os.path.splitext(os.path.basename(file))[0]}/{xlink_href}"
                     response = self.session.get(image_url, timeout=5)
                     dirname = f"{svg_dir}/{os.path.dirname(xlink_href)}"
                     os.makedirs(dirname, exist_ok=True)
