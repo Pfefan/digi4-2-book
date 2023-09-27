@@ -56,8 +56,12 @@ class Authentication:
         for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", second_lti_response):
             payload[match[0]] = match[1]
 
-
+        print(second_lti_req.status_code)
         if second_lti_req.status_code == 403:
-            hpthek_resp = self.session.post(hpthek_url, data=payload)
-            return "https://a.hpthek.at/ebook/164", self.session, True   # TODO actually return the right book id
+            res = self.session.post(hpthek_url, data=payload)
+            print(res.content)
+            print(payload)
+            resource_id = payload["resource_link_id"]
+            url = "https://a.hpthek.at/ebook/" + resource_id
+            return url, self.session, True
         return book_display_url + data[0], self.session, False

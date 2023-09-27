@@ -21,22 +21,22 @@ class Download():
         down_dir = f'download/{data[0]}'
         os.makedirs(down_dir, exist_ok=True)
 
-        print("Getting tokens" + ' '*50)
+        print("Getting tokens" + ' '*50, end="\r")
         url, self.session, self.hpthek_book = Authentication(self.session).get_token(data)
 
-        print("Downloading SVG files" + ' '*50)
+        print("Downloading SVG files" + ' '*50, end="\r")
         svg_success = self.download_svg(down_dir, url)
         if not svg_success:
             print("Failed to download SVG files.\n")
             return
 
-        print("Downloading images" + ' '*50)
+        print("Downloading images" + ' '*50, end="\r")
         img_success = self.download_images(down_dir, url)
         if not img_success:
             print("Failed to download images.\n")
             return
 
-        print("Converting to PDF" + ' '*50)
+        print("Converting to PDF" + ' '*50, end="\r")
         Convert().convert_svg_to_pdf(down_dir, data[2])
 
         shutil.rmtree(down_dir)
@@ -46,7 +46,7 @@ class Download():
         special_book_url: bool = False
         if self.hpthek_book:
             response = self.session.get(f"{url}/1.svg", timeout=5)
-            if response.status_code != 404:
+            if response.status_code != 404:   # TODO: implement check for nested books, so users are able to also download those books
                 file_url = f"{url}/{{}}.svg"
             else:
                 response = self.session.get(f"{url}1/1.svg", timeout=5)
