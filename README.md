@@ -1,4 +1,4 @@
-# Digi2book - book download
+# Digi4-2-book - book download
 
 This project allows you to download books from Digi4School, a website where books are hosted online. It works by downloading all of the SVG files and then converting them to PDF.
 
