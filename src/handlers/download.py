@@ -2,73 +2,57 @@ import os
 import re
 import shutil
 import time
-import xml.etree.ElementTree as ET
 
 import requests
 from requests.exceptions import HTTPError, RequestException
 
 from handlers.authentication import Authentication
-from handlers.pdf_convert import Convert
+from handlers.pdf_convert import SVGtoPDFConverter
 
 
 class Download():
     def __init__(self, session) -> None:
         self.session: requests.Session = session
-        self.hpthek_book = False
 
     def main(self, data: list):
         starttime = time.time()
         down_dir = f'download/{data[0]}'
         os.makedirs(down_dir, exist_ok=True)
 
-        print("Getting tokens" + ' '*50)
-        url, self.session, self.hpthek_book = Authentication(self.session).get_token(data)
+        print("Getting tokens" + ' '*50, end="\r")
+        url, self.session = Authentication(self.session).get_token(data)
 
-        print("Downloading SVG files" + ' '*50)
+        print("Downloading SVG files" + ' '*50, end="\r")
         svg_success = self.download_svg(down_dir, url)
         if not svg_success:
             print("Failed to download SVG files.\n")
             return
 
-        print("Downloading images" + ' '*50)
+        print("Downloading images" + ' '*50, end="\r")
         img_success = self.download_images(down_dir, url)
         if not img_success:
             print("Failed to download images.\n")
             return
 
-        print("Converting to PDF" + ' '*50)
-        Convert().convert_svg_to_pdf(down_dir, data[2])
+        print("Converting to PDF" + ' '*50, end="\r")
+        SVGtoPDFConverter().convert_all_svgs_to_pdf(down_dir, data[2])
 
         shutil.rmtree(down_dir)
         print(f"Process completed in {time.time() - starttime} seconds \n")
 
-    def download_svg(self, down_dir, url):  # TODO: Split up the url detection and the svg download into 2 functions for clearer code
+    def download_svg(self, down_dir, url):
         special_book_url: bool = False
-        if self.hpthek_book:
-            response = self.session.get(f"{url}/1.svg", timeout=5)
-            if response.status_code != 404:
-                file_url = f"{url}/{{}}.svg"
-            else:
-                response = self.session.get(f"{url}1/1.svg", timeout=5)
-                if response.status_code != 404:
-                    file_url = f"{url}/{{}}/{{}}.svg"
-                    special_book_url = True
-                else:
-                    print("failed to get url", end="\r")
-                    return False
 
+        response = self.session.get(f"{url}/1.svg", timeout=5)
+        if response.status_code != 404:
+            file_url = f"{url}/{{}}.svg"
         else:
-            response = self.session.get(f"{url}/1.svg", timeout=5)
+            response = self.session.get(f"{url}/1/1.svg", timeout=5)
             if response.status_code != 404:
-                file_url = f"{url}/{{}}.svg"
+                file_url = f"{url}/{{}}/{{}}.svg"
+                special_book_url = True
             else:
-                response = self.session.get(f"{url}/1/1.svg", timeout=5)
-                if response.status_code != 404:
-                    file_url = f"{url}/{{}}/{{}}.svg"
-                    special_book_url = True
-                else:
-                    print("failed to get url", end="\r")
-                    return False
+                return False
 
         counter = 1
         while True:
@@ -84,7 +68,7 @@ class Download():
             except (RequestException, HTTPError):
                 print(f"Error downloading {file_url_with_counter}")
                 return False
-            
+
             svg_text = response.text
 
             if special_book_url:
