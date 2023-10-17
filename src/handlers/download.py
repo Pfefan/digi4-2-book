@@ -35,7 +35,10 @@ class Download():
             return
 
         print("Converting to PDF" + ' '*50, end="\r")
-        SVGtoPDFConverter().convert_all_svgs_to_pdf(down_dir, data[2])
+        svg_success, error_code = SVGtoPDFConverter().convert_all_svgs_to_pdf(down_dir, data[2])
+        if not svg_success:
+            print(f"Error Converting to pdf: {error_code}")
+            return
 
         shutil.rmtree(down_dir)
         print(f"Process completed in {time.time() - starttime} seconds \n")
