@@ -26,6 +26,8 @@ class SVGtoPDFConverter:
         """
         pdf_filename = os.path.splitext(os.path.basename(svg_file))[0] + '.pdf'
         pdf_file = os.path.join(svg_path, 'temp_pdf', pdf_filename)
+        print(f"pdf file: {pdf_file}")
+        print(f"svg_file: {svg_file}")
         drawing = svg2rlg(svg_file)
         renderPDF.drawToFile(drawing, pdf_file)
         return pdf_file
@@ -47,7 +49,7 @@ class SVGtoPDFConverter:
             svg_files.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
 
             os.makedirs("output", exist_ok=True)
-            os.makedirs(os.path.join(svg_path, "temp_pdf"), exist_ok=True)
+            os.makedirs(os.path.join(svg_path, "temp_pdf"))
 
             filename = slugify(filename)
             output_pdf = filename + ".pdf"
