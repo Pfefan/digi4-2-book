@@ -16,7 +16,7 @@ class Download():
 
     def main(self, data: list):
         starttime = time.time()
-        down_dir = f'download/{data[0]}'
+        down_dir = os.path.join('download', data[0])
         os.makedirs(down_dir, exist_ok=True)
 
         print("Getting tokens" + ' '*50, end="\r")
