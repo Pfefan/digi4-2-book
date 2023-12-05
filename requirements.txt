@@ -1,4 +1,6 @@
-beautifulsoup4
-CairoSVG
-PyPDF2
-Requests
+beautifulsoup4==4.12.2
+PyPDF2==3.0.1
+python-slugify==8.0.1
+reportlab==4.0.7
+Requests==2.31.0
+svglib==1.5.1

@@ -15,10 +15,7 @@ Currently, it's only possible to download one selected book. However, the follow
 To run this program, you need to install some packages. Here's the installation process:
 
 ```bash
-pip install pipwin
-pipwin install cairocffi
 pip install -r requirements.txt
 ```
 
-This will install pipwin, use pipwin to install cairocffi, and then use pip to install the rest of the packages listed in the requirements.txt file.
-Note if you are on linux, you dont need to install the pipwin libary, you just need to install the cairocffi libary
+This will install the required packages for the programm
