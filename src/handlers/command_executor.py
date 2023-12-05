@@ -1,6 +1,6 @@
 from handlers.config_handler import Config
 import requests
-from handlers.digi4school_handler import Digi4school
+from handlers.book_handler import Digi4school
 from handlers.authentication import Authentication
 
 class Handler:
