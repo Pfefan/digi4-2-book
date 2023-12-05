@@ -1,8 +1,10 @@
 import os
-from slugify import slugify
 from concurrent.futures import ProcessPoolExecutor
-from PyPDF2 import PdfMerger
+
 import cairosvg
+from PyPDF2 import PdfMerger
+from slugify import slugify
+
 
 class SVGtoPDFConverter:
     """

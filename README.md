@@ -12,10 +12,19 @@ Currently, it's only possible to download one selected book. However, the follow
 
 ## Installation
 
-To run this program, you need to install some packages. Here's the installation process:
+The installation process varies depending on your operating system.
+
+### Linux
+
+To run this program on Linux, you need to install some packages. Here's the installation process:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-This will install the required packages for the programm
+### Windows
+For Windows users, you need to install GTK for Windows Runtime Environment Installer from the latest releases. You can download it from [here](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases). After installing it, you can then run the requirements.txt file as follows:
+
+```bash
+pip install -r requirements.txt
+```
