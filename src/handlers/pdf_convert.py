@@ -1,13 +1,14 @@
 import os
-import string
+from slugify import slugify
 from concurrent.futures import ProcessPoolExecutor
 
 from PyPDF2 import PdfMerger
-import cairosvg
+from svglib.svglib import svg2rlg
+from reportlab.graphics import renderPDF
 
 class SVGtoPDFConverter:
     """
-    A class to convert SVG files to PDF using cairosvg.
+    A class to convert SVG files to PDF using svglib and reportlab.
     """
     def __init__(self):
         pass
@@ -25,7 +26,8 @@ class SVGtoPDFConverter:
         """
         pdf_filename = os.path.splitext(os.path.basename(svg_file))[0] + '.pdf'
         pdf_file = os.path.join(svg_path, 'temp_pdf', pdf_filename)
-        cairosvg.svg2pdf(url=svg_file, write_to=pdf_file)
+        drawing = svg2rlg(svg_file)
+        renderPDF.drawToFile(drawing, pdf_file)
         return pdf_file
 
     def convert_all_svgs_to_pdf(self, svg_path, filename):
@@ -37,8 +39,8 @@ class SVGtoPDFConverter:
         filename (str): The name of the output PDF file.
         
         Returns:
-        bool: The successfull execution of the conversation
-        str: The error code when the programm fails
+        bool: The successful execution of the conversion
+        str: The error code when the program fails
         """
         try:
             svg_files = [os.path.join(svg_path, svg_filename) for svg_filename in os.listdir(svg_path) if svg_filename.endswith('.svg')]
@@ -47,8 +49,8 @@ class SVGtoPDFConverter:
             os.makedirs("output", exist_ok=True)
             os.makedirs(os.path.join(svg_path, "temp_pdf"), exist_ok=True)
 
-            valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-            output_pdf = ''.join(c if c in valid_chars else '_' for c in filename) + ".pdf"
+            filename = slugify(filename)
+            output_pdf = filename + ".pdf"
             output_pdf = os.path.join("output", output_pdf)
 
             merger = PdfMerger()
