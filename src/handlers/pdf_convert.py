@@ -33,7 +33,7 @@ class SVGtoPDFConverter:
         if not use_default_size:
             cairosvg.svg2pdf(url=svg_file, write_to=pdf_file, unsafe=True)
         else:
-            cairosvg.svg2pdf(url=svg_file, write_to=pdf_file, parent_width=1022.625, parent_height=1446.75, unsafe=True)
+            cairosvg.svg2pdf(url=svg_file, write_to=pdf_file, parent_width=923, parent_height=1312, unsafe=True)
 
         return pdf_file
 
@@ -59,7 +59,8 @@ class SVGtoPDFConverter:
         filename = slugify(filename) + ".pdf"
         output_pdf = os.path.join("output", filename)
 
-        use_default_size = not self.checkfor_svgsize(svg_files[0])
+        use_default_size = not self.check_valid_svgsize(svg_files[0])
+        print(use_default_size)
         if not use_default_size:
             print("The size parameter is missing in the SVG, which could potentially lead to incorrect scaling in the PDF.")
 
@@ -85,7 +86,9 @@ class SVGtoPDFConverter:
         tree = ET.parse(svg_file)
         root = tree.getroot()
 
-        if root.get('width') != None and root.get('height') != None:
+        viewbox = root.get('viewBox')
+
+        if viewbox is not None:
             return True
         else:
             return False
