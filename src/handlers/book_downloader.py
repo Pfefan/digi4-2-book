@@ -4,6 +4,7 @@ import re
 import requests
 from requests.exceptions import HTTPError, RequestException
 
+
 class Download():
     def __init__(self) -> None:
         self.session: requests.Session

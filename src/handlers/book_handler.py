@@ -75,5 +75,5 @@ class Digi4school:
             shutil.rmtree(down_dir)
             return
 
-        #shutil.rmtree(down_dir)
-        print(f"Process completed in {time.time() - starttime} seconds \n")
+        shutil.rmtree(down_dir)
+        print(f"Downloaded '{data[2]}' in {time.time() - starttime} seconds \n")
