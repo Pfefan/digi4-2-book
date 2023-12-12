@@ -1,14 +1,12 @@
 import os
 from concurrent.futures import ProcessPoolExecutor
-
 import cairosvg
 from PyPDF2 import PdfMerger
 from slugify import slugify
 
-
 class SVGtoPDFConverter:
     """
-    A class to convert SVG files to PDF using cairosvg.
+    A class to convert SVG files to PDF using cairo.
     """
     def __init__(self):
         pass
@@ -26,7 +24,9 @@ class SVGtoPDFConverter:
         """
         pdf_filename = os.path.splitext(os.path.basename(svg_file))[0] + '.pdf'
         pdf_file = os.path.join(svg_path, 'temp_pdf', pdf_filename)
-        cairosvg.svg2pdf(url=svg_file, write_to=pdf_file)
+
+        cairosvg.svg2pdf(url=svg_file, write_to=pdf_file, unsafe=True)
+
         return pdf_file
 
     def convert_all_svgs_to_pdf(self, svg_path, filename):
@@ -42,16 +42,16 @@ class SVGtoPDFConverter:
         str: The error code when the program fails
         """
         merger = None
+        os.makedirs("output", exist_ok=True)
+        os.makedirs(os.path.join(svg_path, "temp_pdf"), exist_ok=True)
+
+        svg_files = [os.path.join(svg_path, svg_filename) for svg_filename in os.listdir(svg_path) if svg_filename.endswith('.svg')]
+        svg_files.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
+
+        filename = slugify(filename) + ".pdf"
+        output_pdf = os.path.join("output", filename)
+
         try:
-            svg_files = [os.path.join(svg_path, svg_filename) for svg_filename in os.listdir(svg_path) if svg_filename.endswith('.svg')]
-            svg_files.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
-
-            os.makedirs("output", exist_ok=True)
-            os.makedirs(os.path.join(svg_path, "temp_pdf"))
-
-            filename = slugify(filename) + ".pdf"
-            output_pdf = os.path.join("output", filename)
-
             merger = PdfMerger()
 
             with ProcessPoolExecutor() as executor:

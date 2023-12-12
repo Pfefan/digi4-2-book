@@ -1,47 +1,15 @@
 import os
 import re
-import shutil
-import time
 
 import requests
 from requests.exceptions import HTTPError, RequestException
 
-from handlers.authentication import Authentication
-from handlers.pdf_convert import SVGtoPDFConverter
-
-
 class Download():
-    def __init__(self, session) -> None:
-        self.session: requests.Session = session
+    def __init__(self) -> None:
+        self.session: requests.Session
 
-    def main(self, data: list):
-        starttime = time.time()
-        down_dir = os.path.join('download', data[0])
-        os.makedirs(down_dir, exist_ok=True)
-
-        print("Getting tokens" + ' '*50, end="\r")
-        url, self.session = Authentication(self.session).get_token(data)
-
-        print("Downloading SVG files" + ' '*50, end="\r")
-        svg_success = self.download_svg(down_dir, url)
-        if not svg_success:
-            print("Failed to download SVG files.\n")
-            return
-
-        print("Downloading images" + ' '*50, end="\r")
-        img_success = self.download_images(down_dir, url)
-        if not img_success:
-            print("Failed to download images.\n")
-            return
-
-        print("Converting to PDF" + ' '*50, end="\r")
-        svg_success, error_code = SVGtoPDFConverter().convert_all_svgs_to_pdf(down_dir, data[2])
-        if not svg_success:
-            print(f"Error Converting to pdf: {error_code}")
-            return
-
-        shutil.rmtree(down_dir)
-        print(f"Process completed in {time.time() - starttime} seconds \n")
+    def set_session(self, session: requests.Session):
+        self.session = session
 
     def download_svg(self, down_dir, url):
         special_book_url: bool = False
