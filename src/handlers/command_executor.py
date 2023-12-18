@@ -58,8 +58,7 @@ class Handler:
             page_num = args[3]
             self.download_page(book_id, page_num)
         elif len(args) == 4 and args[1] == "all":
-            # download all books from the user
-            pass
+            self.download_all()
         else:
             print("Invalid arguments. Please try again.")
 
@@ -77,5 +76,5 @@ class Handler:
         pass
 
     def download_all(self):
-        # TODO: Get all of the ids of all of the available books and then download all of them
-        pass
+        data = self.digi4school.get_books(self.session)
+        self.digi4school.download_all(data, self.session)

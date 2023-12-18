@@ -1,5 +1,7 @@
 from pathlib import Path
 from lxml import etree
+from tqdm import tqdm
+
 import os
 import shutil
 import time
@@ -80,3 +82,42 @@ class Digi4school:
             shutil.rmtree(down_dir)
             return
         shutil.rmtree(down_dir)
+
+    def download_all(self, data, session):
+        if session is None:
+            raise ValueError("Session is not initialized.")
+
+        download = Download()
+        starttime = time.perf_counter()
+
+        for book in tqdm(data, desc="Downloading books", unit="book"):
+            down_dir = Path('download') / book[0]
+            os.makedirs(down_dir, exist_ok=True)
+
+            url, session = Authentication(session).get_token(book)
+            download.set_session(session)
+
+            svg_success = download.download_svg(down_dir, url)
+            if not svg_success:
+                print(f"Failed to download SVG files for book {book[0]}.\n")
+                shutil.rmtree(down_dir)
+                continue
+
+            img_success = download.download_images(down_dir, url)
+            if not img_success:
+                print(f"Failed to download images for book {book[0]}.\n")
+                shutil.rmtree(down_dir)
+                continue
+
+            svg_success, error_code = self.conv.convert_all_svgs_to_pdf(down_dir, book[2])
+
+            if svg_success:
+                if error_code == "missingsize":
+                    print(f"The size parameter is missing in the SVG for book {book[0]}, which could potentially lead to incorrect scaling in the PDF.\n")
+                print(f"Downloaded '{book[2]}' in {time.perf_counter() - starttime} seconds \n")
+            else:
+                print(f"Error Converting to pdf: {error_code}")
+                shutil.rmtree(down_dir)
+                continue
+            shutil.rmtree(down_dir)
+        print(f"Downloaded all books in {time.perf_counter() - starttime} seconds \n")
