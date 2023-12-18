@@ -1,7 +1,9 @@
-from handlers.config_handler import Config
 import requests
-from handlers.book_handler import Digi4school
+
 from handlers.authentication import Authentication
+from handlers.book_handler import Digi4school
+from handlers.config_handler import Config
+
 
 class Handler:
     def __init__(self) -> None:
@@ -72,4 +74,8 @@ class Handler:
     def download_page(self, book_id, page_num):
         # TODO: send book id and page number to the class that handles the download of a selected page
         print("page")
+        pass
+
+    def download_all(self):
+        # TODO: Get all of the ids of all of the available books and then download all of them
         pass
