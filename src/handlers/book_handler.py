@@ -1,8 +1,8 @@
+from pathlib import Path
+from lxml import etree
 import os
 import shutil
 import time
-
-from bs4 import BeautifulSoup as bs
 
 from handlers.authentication import Authentication
 from handlers.book_downloader import Download
@@ -25,9 +25,9 @@ class Digi4school:
 
         response = session.get(self.books_list_url, timeout=5)
 
-        soup = bs(response.content, 'html.parser')
+        html_tree = etree.HTML(response.content)
 
-        shelf_div = soup.find('div', {'id': 'shelf'})
+        shelf_div = html_tree.find('div', {'id': 'shelf'})
 
         a_tags = shelf_div.find_all('a')
 
@@ -46,8 +46,8 @@ class Digi4school:
             raise ValueError("Session is not initialized.")
 
         download = Download()
-        starttime = time.time()
-        down_dir = os.path.join('download', data[0])
+        starttime = time.perf_counter()
+        down_dir = Path('download') / data[0]
         os.makedirs(down_dir, exist_ok=True)
 
         print("Getting tokens" + ' '*50, end="\r")
@@ -70,10 +70,13 @@ class Digi4school:
 
         print("Converting to PDF" + ' '*50, end="\r")
         svg_success, error_code = self.conv.convert_all_svgs_to_pdf(down_dir, data[2])
-        if not svg_success:
+
+        if svg_success:
+            if error_code == "missingsize":
+                print("The size parameter is missing in the SVG, which could potentially lead to incorrect scaling in the PDF.", end="\r")
+            print(f"Downloaded '{data[2]}' in {time.perf_counter() - starttime} seconds \n")
+        else:
             print(f"Error Converting to pdf: {error_code}")
             shutil.rmtree(down_dir)
             return
-
         shutil.rmtree(down_dir)
-        print(f"Downloaded '{data[2]}' in {time.time() - starttime} seconds \n")
