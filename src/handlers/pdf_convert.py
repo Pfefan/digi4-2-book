@@ -35,9 +35,9 @@ class SVGtoPDFConverter:
         pdf_file = Path(svg_path) / 'temp_pdf' / pdf_filename
 
         if use_normal_mode:
-            cairosvg.svg2pdf(url=svg_file, write_to=pdf_file, unsafe=True)
+            cairosvg.svg2pdf(url=svg_file, write_to=str(pdf_file), unsafe=True)
         else:
-            cairosvg.svg2pdf(url=svg_file, write_to=pdf_file, parent_width=923, parent_height=1312, unsafe=True)
+            cairosvg.svg2pdf(url=svg_file, write_to=str(pdf_file), parent_width=923, parent_height=1312, unsafe=True)
 
         return pdf_file
 

@@ -26,17 +26,15 @@ class Digi4school:
         response = session.get(self.books_list_url, timeout=5)
 
         html_tree = etree.HTML(response.content)
-
-        shelf_div = html_tree.find('div', {'id': 'shelf'})
-
-        a_tags = shelf_div.find_all('a')
+        regal_div = html_tree.find('.//div[@id="regal"]')
+        shelf_div = regal_div.find('.//div[@id="shelf"]')
+        a_tags = shelf_div.findall('.//a')
 
         for a_tag in a_tags:
             href = a_tag.get('href')
-
-            data_id = a_tag['data-id']
-            data_code = a_tag['data-code']
-            h1_text = a_tag.find('h1').text
+            data_id = a_tag.get('data-id')
+            data_code = a_tag.get('data-code')
+            h1_text = a_tag.find('.//h1').text
             books.append((data_id, data_code, h1_text, href))
 
         return books
