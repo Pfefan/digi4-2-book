@@ -50,14 +50,14 @@ class Handler:
 
     def download(self, command):
         args = command.split()
-        if len(args) == 3 and args[1] == "book":
+        if args[1] == "book" and len(args) == 3:
             book_id = args[2]
             self.download_book(book_id)
-        elif len(args) == 4 and args[1] == "page":
+        elif args[1] == "book" and args[3] == "page" and len(args) == 5 :
             book_id = args[2]
             page_num = args[3]
             self.download_page(book_id, page_num)
-        elif len(args) == 4 and args[1] == "all":
+        elif args[1] == "all" and len(args) == 2:
             self.download_all()
         else:
             print("Invalid arguments. Please try again.")

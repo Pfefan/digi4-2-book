@@ -86,9 +86,9 @@ class Digi4school:
             raise ValueError("Session is not initialized.")
 
         download = Download()
-        starttime = time.perf_counter()
 
-        for book in tqdm(data, desc="Downloading books", unit="book"):
+        pbar = tqdm(data, desc="Downloading", unit="book")
+        for book in pbar:
             down_dir = Path('download') / book[0]
             os.makedirs(down_dir, exist_ok=True)
 
@@ -97,25 +97,29 @@ class Digi4school:
 
             svg_success = download.download_svg(down_dir, url)
             if not svg_success:
-                print(f"Failed to download SVG files for book {book[0]}.\n")
+                pbar.set_postfix_str(f"Failed to download SVG files for book {book[0]}.\n")
                 shutil.rmtree(down_dir)
+                time.sleep(2)
                 continue
 
             img_success = download.download_images(down_dir, url)
             if not img_success:
-                print(f"Failed to download images for book {book[0]}.\n")
+                pbar.set_postfix_str(f"Failed to download images for book {book[0]}.\n")
                 shutil.rmtree(down_dir)
+                time.sleep(2)
                 continue
 
             svg_success, error_code = self.conv.convert_all_svgs_to_pdf(down_dir, book[2])
 
             if svg_success:
                 if error_code == "missingsize":
-                    print(f"The size parameter is missing in the SVG for book {book[0]}, which could potentially lead to incorrect scaling in the PDF.\n")
-                print(f"Downloaded '{book[2]}' in {time.perf_counter() - starttime} seconds \n")
+                    pbar.set_postfix_str(f"size parameter missing for book {book[0]}, could lead to incorrect scaling")
+                    time.sleep(2)
             else:
-                print(f"Error Converting to pdf: {error_code}")
+                pbar.set_postfix_str(f"Error Converting to pdf: {error_code}")
                 shutil.rmtree(down_dir)
+                time.sleep(2)
                 continue
+
             shutil.rmtree(down_dir)
-        print(f"Downloaded all books in {time.perf_counter() - starttime} seconds \n")
+
