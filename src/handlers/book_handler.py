@@ -1,6 +1,8 @@
 from pathlib import Path
 from lxml import etree
 from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
 import os
 import shutil
@@ -109,7 +111,15 @@ class Digi4school:
                 time.sleep(2)
                 continue
 
-            svg_success, error_code = self.conv.convert_all_svgs_to_pdf(down_dir, book[2])
+        dir_book_dict = {str(Path('download') / book[0]): book[2] for book in data}
+
+        books = [(dir_path, dir_book_dict[dir_path]) 
+                 for dir_path in os.listdir("download") 
+                 if os.path.isdir(Path('download') / Path(dir_path))]
+
+        pbar = tqdm(books, desc="Converting to pdf", unit="pdf")
+        for book in pbar:
+            svg_success, error_code = self.conv.convert_all_svgs_to_pdf(book[0], book[1])
 
             if svg_success:
                 if error_code == "missingsize":
@@ -117,9 +127,8 @@ class Digi4school:
                     time.sleep(2)
             else:
                 pbar.set_postfix_str(f"Error Converting to pdf: {error_code}")
-                shutil.rmtree(down_dir)
+                shutil.rmtree(book[0])
                 time.sleep(2)
                 continue
 
-            shutil.rmtree(down_dir)
-
+            shutil.rmtree(book[0])
