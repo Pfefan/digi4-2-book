@@ -61,14 +61,14 @@ class Authentication:
             id_element = soup.select_one('a[href*="index.html"]')
             if id_element:
                 id_value = id_element['href'].split('/')[-2]
-                return f"{book_display_url + data[0]}/{id_value}", session
+                return f"{book_display_url + data[0]}/{id_value}"
 
         # Check for hpthek book
         if second_lti_req.status_code == 403:
             session.post(hpthek_url, data=payload)
             resource_id = payload["resource_link_id"]
             url = "https://a.hpthek.at/ebook/" + resource_id
-            return url, session
+            return url
         
         # Return Data
         return book_display_url + data[0]

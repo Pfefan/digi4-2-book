@@ -5,6 +5,7 @@ from tqdm import tqdm
 import os
 import shutil
 import time
+import copy
 import concurrent.futures
 
 from handlers.authentication import Authentication
@@ -50,7 +51,6 @@ class Digi4school:
         starttime = time.perf_counter()
         down_dir = Path('download') / data[0]
         os.makedirs(down_dir, exist_ok=True)
-        print(data)
 
         print("Getting tokens" + ' '*50, end="\r")
         url = Authentication().get_token(data, session)
@@ -89,9 +89,11 @@ class Digi4school:
         def download_book(book):
             down_dir = Path('download') / book[0]
             os.makedirs(down_dir, exist_ok=True)
-
-            download = Download(session)
+            
             url = Authentication().get_token(book, session)
+
+            temp_session = copy.deepcopy(session)
+            download = Download(temp_session)
 
             svg_success = download.download_svg(down_dir, url)
             if not svg_success:
