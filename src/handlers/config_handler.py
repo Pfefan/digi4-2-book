@@ -1,6 +1,5 @@
-import configparser
 import os
-
+from configparser import RawConfigParser
 
 class Config:
     def __init__(self) -> None:
@@ -8,7 +7,7 @@ class Config:
 
     def check_config(self) -> bool:
         if not os.path.isfile("config.ini"):
-            config = configparser.ConfigParser()
+            config = RawConfigParser()
 
             config['DEFAULT'] = {
                 'email': 'email',
@@ -19,7 +18,7 @@ class Config:
             print("No Config file!!")
             return False
         else:
-            config = configparser.ConfigParser()
+            config = RawConfigParser()
             config.read('config.ini')
             config = config['DEFAULT']
 
@@ -30,6 +29,6 @@ class Config:
             return True
 
     def get_config(self):
-        config = configparser.ConfigParser()
+        config = RawConfigParser()
         config.read('config.ini')
         return config['DEFAULT']

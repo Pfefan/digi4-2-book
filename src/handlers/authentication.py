@@ -6,11 +6,10 @@ from handlers.config_handler import Config
 
 
 class Authentication:
-    def __init__(self, session):
-        self.session = session
+    def __init__(self):
         self.login_url = "https://digi4school.at/br/xhr/login"
 
-    def login_user(self):
+    def login_user(self, session):
         payload = {
             'email': 'email',
             'password': 'password'
@@ -18,14 +17,14 @@ class Authentication:
         data = Config().get_config()
         payload["email"] = data["email"]
         payload["password"] = data["password"]
-        response = self.session.post(self.login_url, data=payload, timeout=5)
+        response = session.post(self.login_url, data=payload, timeout=5)
 
         if str(response.content, 'utf-8') == "OK":
-            return (True, self.session)
+            return (True, session)
         elif str(response.content, 'utf-8') == "KO":
-            return (False, self.session)
+            return (False, session)
 
-    def get_token(self, data):
+    def get_token(self, data, session):
         payload = {}
         book_code_url = "https://digi4school.at/ebook/" + data[1]
         lti_ad_session_url = "https://kat.digi4school.at/lti"
@@ -33,7 +32,7 @@ class Authentication:
         hpthek_url = "https://a.hpthek.at/lti"
         book_display_url = "https://a.digi4school.at/ebook/"
 
-        book_code_req = self.session.get(book_code_url)
+        book_code_req = session.get(book_code_url)
 
         book_code_response = book_code_req.content.decode()
         # gets all the data from the first lti response using regular expressions
@@ -41,7 +40,7 @@ class Authentication:
             payload[match[0]] = match[1]
 
         # this request takes the cookie and the response data from the book id request to get a new ad_session_id token
-        first_lti_req = self.session.post(lti_ad_session_url, data=payload)
+        first_lti_req = session.post(lti_ad_session_url, data=payload)
         payload.clear()
 
         first_lti_response = first_lti_req.content.decode()
@@ -51,7 +50,7 @@ class Authentication:
             payload[match[0]] = match[1]
 
         # this request saves the needed cookies in the session object which are needed to view the book
-        second_lti_req = self.session.post(lti_cookie_url, data=payload)
+        second_lti_req = session.post(lti_cookie_url, data=payload)
 
         second_lti_response = second_lti_req.content.decode()
 
@@ -62,14 +61,14 @@ class Authentication:
             id_element = soup.select_one('a[href*="index.html"]')
             if id_element:
                 id_value = id_element['href'].split('/')[-2]
-                return f"{book_display_url + data[0]}/{id_value}", self.session
+                return f"{book_display_url + data[0]}/{id_value}", session
 
         # Check for hpthek book
         if second_lti_req.status_code == 403:
-            self.session.post(hpthek_url, data=payload)
+            session.post(hpthek_url, data=payload)
             resource_id = payload["resource_link_id"]
             url = "https://a.hpthek.at/ebook/" + resource_id
-            return url, self.session
+            return url, session
         
         # Return Data
-        return book_display_url + data[0], self.session
+        return book_display_url + data[0]

@@ -6,11 +6,8 @@ from requests.exceptions import HTTPError, RequestException
 
 
 class Download():
-    def __init__(self) -> None:
-        self.session: requests.Session
-
-    def set_session(self, session: requests.Session):
-        self.session = session
+    def __init__(self, session) -> None:
+        self.session: requests.Session = session
 
     def download_svg(self, down_dir, url):
         special_book_url: bool = False

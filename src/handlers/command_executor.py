@@ -12,14 +12,13 @@ class Handler:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
         })
         self.digi4school = Digi4school()
-        self.auth = Authentication(self.session)
+        self.auth = Authentication()
 
     def main(self):
         validconfig = Config().check_config()
         if validconfig:
-            login = self.auth.login_user()
-            self.session = login[1]
-            if login[0]:
+            loggedin_suc, self.session = self.auth.login_user(self.session)
+            if loggedin_suc:
                 self.handler()
             else:
                 print("Invalid user name or password in config")
