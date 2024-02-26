@@ -1,12 +1,12 @@
-from pathlib import Path
-from lxml import etree
-from tqdm import tqdm
-
+import concurrent.futures
+import copy
 import os
 import shutil
 import time
-import copy
-import concurrent.futures
+from pathlib import Path
+
+from bs4 import BeautifulSoup
+from tqdm import tqdm
 
 from handlers.authentication import Authentication
 from handlers.book_downloader import Download
@@ -29,15 +29,14 @@ class Digi4school:
 
         response = session.get(self.books_list_url, timeout=5)
 
-        html_tree = etree.HTML(response.content)
-        regal_div = html_tree.find('.//div[@id="regal"]')
-        shelf_div = regal_div.find('.//div[@id="shelf"]')
-        a_tags = shelf_div.findall('.//a')
+        soup = BeautifulSoup(response.content, 'html.parser')
+        shelf_div = soup.find(id='shelf')
+        a_tags = shelf_div.find_all('a')
 
         for a_tag in a_tags:
             data_id = a_tag.get('data-id')
             data_code = a_tag.get('data-code')
-            book_title = a_tag.find('.//h1').text
+            book_title = a_tag.find('h1').text
             href = a_tag.get('href')
             books.append((data_id, data_code, book_title, href))
 
