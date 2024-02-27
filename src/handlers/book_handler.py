@@ -52,7 +52,7 @@ class Digi4school:
         os.makedirs(down_dir, exist_ok=True)
 
         print("Getting tokens" + ' '*50, end="\r")
-        url = Authentication().get_token(data, session)
+        url = Authentication().get_bookurl(data, session)
 
         print("Downloading SVG files" + ' '*50, end="\r")
         svg_success = download.download_svg(down_dir, url)
@@ -89,7 +89,7 @@ class Digi4school:
             down_dir = Path('download') / book[0]
             os.makedirs(down_dir, exist_ok=True)
             
-            url = Authentication().get_token(book, session)
+            url = Authentication().get_bookurl(book, session)
 
             temp_session = copy.deepcopy(session)
             download = Download(temp_session)
