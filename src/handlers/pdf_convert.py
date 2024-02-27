@@ -81,6 +81,7 @@ class SVGtoPDFConverter:
         finally:
             if merger is not None:
                 merger.close()
+
         if not use_normal_mode:
             return True, "missingsize"
         return True, ""

@@ -6,11 +6,8 @@ from requests.exceptions import HTTPError, RequestException
 
 
 class Download():
-    def __init__(self) -> None:
-        self.session: requests.Session
-
-    def set_session(self, session: requests.Session):
-        self.session = session
+    def __init__(self, session) -> None:
+        self.session: requests.Session = session
 
     def download_svg(self, down_dir, url):
         special_book_url: bool = False
@@ -70,8 +67,7 @@ class Download():
                 svg_contents = svg_file.read().decode('utf-8')
 
             # use a regular expression to extract all xlink:href attribute values from the image tags
-            pattern = r'<image\s.*?xlink:href="([^"]*)".*?>'
-            matches = re.findall(pattern, svg_contents)
+            matches = re.findall(r'<image\s.*?xlink:href="([^"]*)".*?>', svg_contents)
 
             if matches:
                 for xlink_href in matches:

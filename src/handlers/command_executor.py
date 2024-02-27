@@ -12,14 +12,13 @@ class Handler:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
         })
         self.digi4school = Digi4school()
-        self.auth = Authentication(self.session)
+        self.auth = Authentication()
 
     def main(self):
         validconfig = Config().check_config()
         if validconfig:
-            login = self.auth.login_user()
-            self.session = login[1]
-            if login[0]:
+            loggedin_suc, self.session = self.auth.login_user(self.session)
+            if loggedin_suc:
                 self.handler()
             else:
                 print("Invalid user name or password in config")
@@ -50,16 +49,15 @@ class Handler:
 
     def download(self, command):
         args = command.split()
-        if len(args) == 3 and args[1] == "book":
+        if args[1] == "book" and len(args) == 3:
             book_id = args[2]
             self.download_book(book_id)
-        elif len(args) == 4 and args[1] == "page":
+        elif args[1] == "book" and args[3] == "page" and len(args) == 5 :
             book_id = args[2]
             page_num = args[3]
             self.download_page(book_id, page_num)
-        elif len(args) == 4 and args[1] == "all":
-            # download all books from the user
-            pass
+        elif args[1] == "all" and len(args) == 2:
+            self.download_all()
         else:
             print("Invalid arguments. Please try again.")
 
@@ -69,7 +67,7 @@ class Handler:
             return
 
         data = self.digi4school.get_books(self.session)[int(book_id)-1]
-        self.digi4school.download_book(data, self.session)
+        self.digi4school.download_single_book(data, self.session)
 
     def download_page(self, book_id, page_num):
         # TODO: send book id and page number to the class that handles the download of a selected page
@@ -77,5 +75,5 @@ class Handler:
         pass
 
     def download_all(self):
-        # TODO: Get all of the ids of all of the available books and then download all of them
-        pass
+        data = self.digi4school.get_books(self.session)
+        self.digi4school.download_all_books(data, self.session)
