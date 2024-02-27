@@ -1,108 +1,106 @@
+"""
+This module contains the Authentication class for handling user authentication and token processing 
+for accessing the Digi4School platform.
+"""
 import re
 
 from bs4 import BeautifulSoup
-import urllib.parse
 from handlers.config_handler import Config
 
 
 class Authentication:
+    """
+    The Authentication class handles user authentication and token processing
+    for accessing the Digi4School platform.
+    """
+
+    LOGIN_URL = "https://digi4school.at/br/xhr/login"
+
     def __init__(self):
-        self.login_url = "https://digi4school.at/br/xhr/login"
+        pass
 
     def login_user(self, session):
-        payload = {
+        """
+        Logs in a user using the provided session.
+
+        Args:
+            session (Session): The session object used for making HTTP requests.
+
+        Returns:
+            tuple: A tuple containing a boolean value indicating the login status (True for success, False for failure)
+                   and the updated session object.
+        """
+        login_payload = {
             'email': 'email',
             'password': 'password'
         }
-        data = Config().get_config()
-        payload["email"] = data["email"]
-        payload["password"] = data["password"]
-        response = session.post(self.login_url, data=payload, timeout=5)
+        config_data = Config().get_config()
+        login_payload["email"] = config_data["email"]
+        login_payload["password"] = config_data["password"]
+        response = session.post(self.LOGIN_URL, data=login_payload, timeout=5)
 
         if str(response.content, 'utf-8') == "OK":
             return (True, session)
         elif str(response.content, 'utf-8') == "KO":
             return (False, session)
 
-    def get_token(self, data, session):
-        payload = {}
+    def get_bookurl(self, data, session):
+        """
+        Processes lti request which is needed for authentication.
+
+        Args:
+            data (list): The data required for token retrieval.
+            session (object): The session object for making HTTP requests.
+
+        Returns:
+            redirect_url (str): The URL to the book.
+        """
         book_code_url = "https://digi4school.at/ebook/" + data[1]
-        lti_ad_session_url = "https://kat.digi4school.at/lti"
-        lti_cookie_url = "https://a.digi4school.at/lti"
-        hpthek_lti = "https://a.hpthek.at/lti"
-        scook_lti = "https://www.scook.at/lti"
-        book_display_url = "https://a.digi4school.at/ebook/"
 
         book_code_req = session.get(book_code_url)
-
         book_code_response = book_code_req.content.decode()
-        # gets all the data from the first lti response using regular expressions
-        for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", book_code_response):
-            payload[match[0]] = match[1]
 
-        # this request takes the cookie and the response data from the book id request to get a new ad_session_id token
-        first_lti_req = session.post(lti_ad_session_url, data=payload)
-        payload.clear()
+        # Proccesses the data from the response to get the action url and
+        # the data_payload for the next requests
+        action_lti, data_payload = self.process_lti_response(book_code_response)
 
+        # Sends first LTI request for token verification
+        first_lti_req = session.post(action_lti, data=data_payload)
         first_lti_response = first_lti_req.content.decode()
 
-        # gets all the data from the first lti response using regular expressions
-        for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", first_lti_response):
-            payload[match[0]] = match[1]
-        
-        action_lti = re.search(r"<form[^>]*action='(.*?)'", first_lti_response)
-        if action_lti:
-            action_lti = action_lti.group(1)
+        # Proccesses the data from the response to get the action url and
+        # the data_payload for the next requests
+        action_lti, data_payload = self.process_lti_response(first_lti_response)
 
-        print(session.cookies)
-        # requests the cookies needed to view the book
-        headers = {
-            "Host": "kat.digi4school.at",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Referer": "https://digi4school.at/",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Content-Length": str(len(urllib.parse.urlencode(payload).encode('utf-8'))),
-            "Origin": "https://digi4school.at",
-            "Connection": "keep-alive",
-            "Cookie": session.cookies.get("digi4s") + "; " + session.cookies.get("ad_session_id"),
-            "Upgrade-Insecure-Requests": "1",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "same-site",
-        }
-
-        second_lti_req = session.post(action_lti, headers=headers, data=payload)
-
+        # Sends request to the LTI verification URL to get the final redirect URL
+        second_lti_req = session.post(action_lti, data=data_payload, allow_redirects=False)
         second_lti_response = second_lti_req.content.decode()
-
         soup = BeautifulSoup(second_lti_response, 'html.parser')
 
-        print(second_lti_req.headers)
+        redirect_url = second_lti_req.headers["Location"]
 
-        # Check for nested books
+        # Checks for nested books and returns if true
         if soup.select_one('#content'):
             id_element = soup.select_one('a[href*="index.html"]')
             if id_element:
                 id_value = id_element['href'].split('/')[-2]
-                return f"{book_display_url + data[0]}/{id_value}"
+                return f"{redirect_url}/{id_value}"
 
-        # Check for hpthek book
-        """if second_lti_req.status_code == 403:
-            session.post(hpthek_lti, data=payload)
-            resource_id = payload["resource_link_id"]
-            url = "https://a.hpthek.at/ebook/" + resource_id
+        return redirect_url
 
-            # validate if its a hpthek book
-            hpthek_req = session.get(url, data=payload)
-            print(url)
-            if hpthek_req.status_code == 200:
-                return url
-            else:
-                lti_req = session.post(scook_lti, data=payload)
-                print(lti_req.headers)"""
-        
-        # Return Data
-        return book_display_url + data[0]
+    def process_lti_response(self, response):
+        """
+        Process the LTI response and extract the payload and the redirect url.
+
+        Args:
+            response (str): The LTI response HTML content.
+
+        Returns:
+            tuple: A tuple containing the action URL and the payload dictionary.
+        """
+        data_payload = {}
+        for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", response):
+            data_payload[match[0]] = match[1]
+
+        action_lti = re.search(r"<form[^>]*action='(.*?)'", response).group(1)
+        return action_lti, data_payload
