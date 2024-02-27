@@ -74,10 +74,12 @@ class Authentication:
 
         # Sends request to the LTI verification URL to get the final redirect URL
         second_lti_req = session.post(action_lti, data=data_payload, allow_redirects=False)
+        redirect_url = second_lti_req.headers["Location"]
+
+        # Sends another request with redirects allowed so the actual html page is loaded
+        second_lti_req = session.post(action_lti, data=data_payload)
         second_lti_response = second_lti_req.content.decode()
         soup = BeautifulSoup(second_lti_response, 'html.parser')
-
-        redirect_url = second_lti_req.headers["Location"]
 
         # Checks for nested books and returns if true
         if soup.select_one('#content'):
