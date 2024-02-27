@@ -5,11 +5,11 @@ import requests
 from requests.exceptions import HTTPError, RequestException
 
 
-class Download():
+class BookContentDownloader():
     def __init__(self, session) -> None:
         self.session: requests.Session = session
 
-    def download_svg(self, down_dir, url):
+    def download_svgs(self, down_dir, url):
         special_book_url: bool = False
 
         response = self.session.get(f"{url}/1.svg", timeout=5)

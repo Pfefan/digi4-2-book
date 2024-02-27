@@ -8,12 +8,12 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from handlers.authentication import Authentication
-from handlers.book_downloader import Download
+from handlers.authentication import AuthAndTokenHandler
+from handlers.book_downloader import BookContentDownloader
 from handlers.pdf_convert import SVGtoPDFConverter
 
 
-class Digi4school:
+class BookDataRetriever:
     def __init__(self):
         self.books_list_url = "https://digi4school.at/ebooks"
 
@@ -22,7 +22,7 @@ class Digi4school:
 
         os.makedirs('download', exist_ok=True)
 
-    def get_books(self, session):
+    def get_book_list(self, session):
         books = []
         if session is None:
             raise ValueError("Session is not initialized.")
@@ -46,16 +46,16 @@ class Digi4school:
         if session is None:
             raise ValueError("Session is not initialized.")
 
-        download = Download(session)
+        download = BookContentDownloader(session)
         starttime = time.perf_counter()
         down_dir = Path('download') / data[0]
         os.makedirs(down_dir, exist_ok=True)
 
         print("Getting tokens" + ' '*50, end="\r")
-        url = Authentication().get_bookurl(data, session)
+        url = AuthAndTokenHandler().get_bookurl(data, session)
 
         print("Downloading SVG files" + ' '*50, end="\r")
-        svg_success = download.download_svg(down_dir, url)
+        svg_success = download.download_svgs(down_dir, url)
         if not svg_success:
             print("Failed to download SVG files.\n")
             shutil.rmtree(down_dir)
@@ -90,12 +90,12 @@ class Digi4school:
             down_dir = Path('download') / book[0]
             os.makedirs(down_dir, exist_ok=True)
             
-            url = Authentication().get_bookurl(book, session)
+            url = AuthAndTokenHandler().get_bookurl(book, session)
 
             temp_session = copy.deepcopy(session)
-            download = Download(temp_session)
+            download = BookContentDownloader(temp_session)
 
-            svg_success = download.download_svg(down_dir, url)
+            svg_success = download.download_svgs(down_dir, url)
             if not svg_success:
                 shutil.rmtree(down_dir)
                 return f"Failed to download SVG files for book {book[0]}"

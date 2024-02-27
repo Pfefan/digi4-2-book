@@ -5,12 +5,12 @@ for accessing the Digi4School platform.
 import re
 
 from bs4 import BeautifulSoup
-from handlers.config_handler import Config
+from handlers.config_handler import ConfigHandler
 
 
-class Authentication:
+class AuthAndTokenHandler:
     """
-    The Authentication class handles user authentication and token processing
+    The AuthAndTokenHandler class handles user authentication and token processing
     for accessing the Digi4School platform.
     """
 
@@ -34,7 +34,7 @@ class Authentication:
             'email': 'email',
             'password': 'password'
         }
-        config_data = Config().get_config()
+        config_data = ConfigHandler().get_config()
         login_payload["email"] = config_data["email"]
         login_payload["password"] = config_data["password"]
         response = session.post(self.LOGIN_URL, data=login_payload, timeout=5)
@@ -77,7 +77,7 @@ class Authentication:
         redirect_url = second_lti_req.headers["Location"]
 
         # Sends another request with redirects allowed so the actual html page is loaded
-        second_lti_req = session.post(action_lti, data=data_payload)
+        second_lti_req = session.post(action_lti, data=data_payload, allow_redirects=True)
         second_lti_response = second_lti_req.content.decode()
         soup = BeautifulSoup(second_lti_response, 'html.parser')
 
