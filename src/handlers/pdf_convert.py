@@ -1,13 +1,13 @@
-from pathlib import Path
 import glob
 import os
 import xml.etree.ElementTree as ET
 from concurrent.futures import ProcessPoolExecutor
-
+from pathlib import Path
 
 import cairosvg
 from PyPDF2 import PdfMerger
 from slugify import slugify
+
 
 class SVGtoPDFConverter:
     """
