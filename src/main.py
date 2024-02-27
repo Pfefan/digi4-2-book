@@ -1,5 +1,5 @@
 """main module"""
-from handlers.command_executor import Handler
+from handlers.command_handler import Handler
 
 if __name__ == "__main__":
     Handler().main()

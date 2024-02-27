@@ -1,7 +1,7 @@
 import requests
 
 from handlers.authentication import Authentication
-from handlers.book_handler import Digi4school
+from handlers.book_fetcher import Digi4school
 from handlers.config_handler import Config
 
 
