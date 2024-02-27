@@ -1,7 +1,7 @@
 import re
 
 from bs4 import BeautifulSoup
-
+import urllib.parse
 from handlers.config_handler import Config
 
 
@@ -29,7 +29,8 @@ class Authentication:
         book_code_url = "https://digi4school.at/ebook/" + data[1]
         lti_ad_session_url = "https://kat.digi4school.at/lti"
         lti_cookie_url = "https://a.digi4school.at/lti"
-        hpthek_url = "https://a.hpthek.at/lti"
+        hpthek_lti = "https://a.hpthek.at/lti"
+        scook_lti = "https://www.scook.at/lti"
         book_display_url = "https://a.digi4school.at/ebook/"
 
         book_code_req = session.get(book_code_url)
@@ -48,13 +49,38 @@ class Authentication:
         # gets all the data from the first lti response using regular expressions
         for match in re.findall(r"<input name='(\w+)' value='(.*?)'>", first_lti_response):
             payload[match[0]] = match[1]
+        
+        action_lti = re.search(r"<form[^>]*action='(.*?)'", first_lti_response)
+        if action_lti:
+            action_lti = action_lti.group(1)
 
-        # this request saves the needed cookies in the session object which are needed to view the book
-        second_lti_req = session.post(lti_cookie_url, data=payload)
+        print(session.cookies)
+        # requests the cookies needed to view the book
+        headers = {
+            "Host": "kat.digi4school.at",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Referer": "https://digi4school.at/",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Content-Length": str(len(urllib.parse.urlencode(payload).encode('utf-8'))),
+            "Origin": "https://digi4school.at",
+            "Connection": "keep-alive",
+            "Cookie": session.cookies.get("digi4s") + "; " + session.cookies.get("ad_session_id"),
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "same-site",
+        }
+
+        second_lti_req = session.post(action_lti, headers=headers, data=payload)
 
         second_lti_response = second_lti_req.content.decode()
 
         soup = BeautifulSoup(second_lti_response, 'html.parser')
+
+        print(second_lti_req.headers)
 
         # Check for nested books
         if soup.select_one('#content'):
@@ -64,11 +90,19 @@ class Authentication:
                 return f"{book_display_url + data[0]}/{id_value}"
 
         # Check for hpthek book
-        if second_lti_req.status_code == 403:
-            session.post(hpthek_url, data=payload)
+        """if second_lti_req.status_code == 403:
+            session.post(hpthek_lti, data=payload)
             resource_id = payload["resource_link_id"]
             url = "https://a.hpthek.at/ebook/" + resource_id
-            return url
+
+            # validate if its a hpthek book
+            hpthek_req = session.get(url, data=payload)
+            print(url)
+            if hpthek_req.status_code == 200:
+                return url
+            else:
+                lti_req = session.post(scook_lti, data=payload)
+                print(lti_req.headers)"""
         
         # Return Data
         return book_display_url + data[0]
