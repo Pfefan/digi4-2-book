@@ -5,6 +5,7 @@ for accessing the Digi4School platform.
 import re
 
 from bs4 import BeautifulSoup
+
 from handlers.config_handler import ConfigHandler
 
 

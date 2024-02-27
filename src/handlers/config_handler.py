@@ -1,6 +1,7 @@
 import os
 from configparser import RawConfigParser
 
+
 class ConfigHandler:
     def __init__(self) -> None:
         pass
