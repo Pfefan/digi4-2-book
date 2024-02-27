@@ -42,7 +42,7 @@ class Digi4school:
 
         return books
 
-    def download_book(self, data, session):
+    def download_single_book(self, data, session):
         if session is None:
             raise ValueError("Session is not initialized.")
 
@@ -74,6 +74,7 @@ class Digi4school:
         if svg_success:
             if error_code == "missingsize":
                 print("The size parameter is missing in the SVG, which could potentially lead to incorrect scaling in the PDF.", end="\r")
+                print("\n")
             print(f"Downloaded '{data[2]}' in {time.perf_counter() - starttime} seconds \n")
         else:
             print(f"Error Converting to pdf: {error_code}")
@@ -81,7 +82,7 @@ class Digi4school:
             return
         shutil.rmtree(down_dir)
     
-    def download_all(self, data, session):
+    def download_all_books(self, data, session):
         if session is None:
             raise ValueError("Session is not initialized.")
 
@@ -96,10 +97,12 @@ class Digi4school:
 
             svg_success = download.download_svg(down_dir, url)
             if not svg_success:
+                shutil.rmtree(down_dir)
                 return f"Failed to download SVG files for book {book[0]}"
 
             img_success = download.download_images(down_dir, url)
             if not img_success:
+                shutil.rmtree(down_dir)
                 return f"Failed to download images for book {book[0]}"
 
             return None
@@ -111,28 +114,31 @@ class Digi4school:
         if failed_books:
             print(f"Failed to download the following books: {', '.join(failed_books)}")
 
-        dir_book_dict = {str(Path('download') / book[0]): book[2] for book in data}
+        dir_book_dict = {str(book[0]): book[2] for book in data}
 
-        books = [(dir_path, dir_book_dict[dir_path]) 
-                for dir_path in os.listdir("download") 
+        books = [(Path('download') / dir_path, dir_book_dict[dir_path])
+                for dir_path in os.listdir("download")
                 if os.path.isdir(Path('download') / Path(dir_path))]
 
         pbar = tqdm(books, desc="Converting to pdf", unit="pdf")
         failed_books = []
+        missing_size_books = False
         for book in pbar:
             svg_success, error_code = self.conv.convert_all_svgs_to_pdf(book[0], book[1])
 
             if svg_success:
                 if error_code == "missingsize":
-                    failed_books.append(book[2])
+                    missing_size_books = True
             else:
-                failed_books.append(book[2])
+                failed_books.append(book[1])
                 shutil.rmtree(book[0])
                 continue
 
             shutil.rmtree(book[0])
 
-        if failed_books:
+        if missing_size_books:
+            print(f"Incorect scaling for PDFs of the following books: {', '.join(failed_books)}")
+        elif failed_books and missing_size_books:
+            print(f"Failed to convert to PDF or incorect scaling for PDF for the following books: {', '.join(failed_books)}")
+        elif failed_books:
             print(f"Failed to convert to PDF for the following books: {', '.join(failed_books)}")
-
-        shutil.rmtree('download')

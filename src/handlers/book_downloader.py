@@ -67,8 +67,7 @@ class Download():
                 svg_contents = svg_file.read().decode('utf-8')
 
             # use a regular expression to extract all xlink:href attribute values from the image tags
-            pattern = r'<image\s.*?xlink:href="([^"]*)".*?>'
-            matches = re.findall(pattern, svg_contents)
+            matches = re.findall(r'<image\s.*?xlink:href="([^"]*)".*?>', svg_contents)
 
             if matches:
                 for xlink_href in matches:

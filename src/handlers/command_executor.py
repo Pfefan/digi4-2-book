@@ -67,7 +67,7 @@ class Handler:
             return
 
         data = self.digi4school.get_books(self.session)[int(book_id)-1]
-        self.digi4school.download_book(data, self.session)
+        self.digi4school.download_single_book(data, self.session)
 
     def download_page(self, book_id, page_num):
         # TODO: send book id and page number to the class that handles the download of a selected page
@@ -76,4 +76,4 @@ class Handler:
 
     def download_all(self):
         data = self.digi4school.get_books(self.session)
-        self.digi4school.download_all(data, self.session)
+        self.digi4school.download_all_books(data, self.session)
