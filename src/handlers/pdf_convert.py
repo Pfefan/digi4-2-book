@@ -59,6 +59,7 @@ class SVGtoPDFConverter:
 
         svg_files = glob.glob(os.path.join(svg_path, '*.svg'))
         svg_files.sort(key=lambda x: int(Path(x).stem))
+        total_pdfs = len(svg_files)
 
         filename = slugify(filename) + ".pdf"
         output_pdf = Path("output") / filename

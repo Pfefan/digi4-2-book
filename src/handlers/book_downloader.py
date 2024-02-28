@@ -1,9 +1,9 @@
 import os
 import re
 
+
 import requests
 from requests.exceptions import HTTPError, RequestException
-
 
 class BookContentDownloader():
     def __init__(self, session) -> None:
@@ -11,17 +11,19 @@ class BookContentDownloader():
 
     def download_svgs(self, down_dir, url):
         special_book_url: bool = False
+        total_pages = None
 
         response = self.session.get(f"{url}/1.svg", timeout=5)
         if response.status_code != 404:
             file_url = f"{url}/{{}}.svg"
-        else:
+            total_pages = self.get_total_pages(file_url)
+        elif response.status_code != 404:
             response = self.session.get(f"{url}/1/1.svg", timeout=5)
-            if response.status_code != 404:
-                file_url = f"{url}/{{}}/{{}}.svg"
-                special_book_url = True
-            else:
-                return False
+            file_url = f"{url}/{{}}/{{}}.svg"
+            total_pages = self.get_total_pages(file_url)
+            special_book_url = True
+        else:
+            return False
 
         counter = 1
         while True:
@@ -49,6 +51,35 @@ class BookContentDownloader():
             counter += 1
         return True
 
+    def download_images(self, svg_dir, url):
+        svg_files = os.listdir(svg_dir)
+        images_urls = []
+
+        for file in svg_files:
+            with open(f"{svg_dir}/{file}", "rb") as svg_file:
+                svg_contents = svg_file.read().decode('utf-8')
+
+            # use a regular expression to extract all xlink:href attribute values from the image tags
+            matches = re.findall(r'<image\s.*?xlink:href="([^"]*)".*?>', svg_contents)
+
+            if matches:
+                images_urls.extend(matches)
+
+        total_images = len(images_urls)
+
+        for xlink_href in images_urls:
+            image_url = f"{url}/{xlink_href}"
+            response = self.session.get(image_url, timeout=5)
+            dirname = f"{svg_dir}/{os.path.dirname(xlink_href)}"
+            os.makedirs(dirname, exist_ok=True)
+
+            if response.status_code == 200:
+                with open(os.path.join(dirname, os.path.basename(xlink_href)), "wb") as img_file:
+                    img_file.write(response.content)
+            else:
+                return False
+        return True
+
     def modify_svg_text(self, svg_text:str, counter):
         pattern = r'<image\s.*?xlink:href="([^"]*)".*?>'
         matches = re.findall(pattern, svg_text)
@@ -59,26 +90,14 @@ class BookContentDownloader():
                 svg_text = svg_text.replace(xlink_href, new_url, 1)
         return svg_text
 
-    def download_images(self, svg_dir, url):
-        svg_files = os.listdir(svg_dir)
-
-        for file in svg_files:
-            with open(f"{svg_dir}/{file}", "rb") as svg_file:
-                svg_contents = svg_file.read().decode('utf-8')
-
-            # use a regular expression to extract all xlink:href attribute values from the image tags
-            matches = re.findall(r'<image\s.*?xlink:href="([^"]*)".*?>', svg_contents)
-
-            if matches:
-                for xlink_href in matches:
-                    image_url = f"{url}/{xlink_href}"
-                    response = self.session.get(image_url, timeout=5)
-                    dirname = f"{svg_dir}/{os.path.dirname(xlink_href)}"
-                    os.makedirs(dirname, exist_ok=True)
-
-                    if response.status_code == 200:
-                        with open(os.path.join(dirname, os.path.basename(xlink_href)), "wb") as img_file:
-                            img_file.write(response.content)
-                    else:
-                        return False
-        return True
+    def get_total_pages(self, url):
+        low = 1
+        high = 1000
+        while low <= high:
+            mid = (high + low) // 2
+            response = self.session.get(url.format(mid, mid), timeout=5)
+            if response.status_code == 404:
+                high = mid - 1
+            else:
+                low = mid + 1
+        return high

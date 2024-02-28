@@ -129,6 +129,7 @@ class BookDataRetriever:
             if svg_success:
                 if error_code == "missingsize":
                     missing_size_books = True
+                    failed_books.append(book[1])
             else:
                 failed_books.append(book[1])
                 shutil.rmtree(book[0])
