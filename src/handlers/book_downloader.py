@@ -13,6 +13,7 @@ class BookContentDownloader():
     def download_svgs(self, down_dir, url, show_progress=False):
         special_book_url: bool = False
         file_url = None
+        total_pages = None
 
         response = self.session.get(f"{url}/1.svg", timeout=5)
         if response.status_code != 404:
@@ -25,11 +26,12 @@ class BookContentDownloader():
             else:
                 return False
 
+        total_pages = self.get_total_pages(file_url) if show_progress else None
         counter = 1
 
         # This shows a progress bar for the download if the show_progress
         # parameter is set to True. Otherwise, it just downloads the files.
-        with tqdm.tqdm(total=self.get_total_pages(file_url), desc="Downloading svgs", unit="svg", disable=not show_progress) as pbar:
+        with tqdm.tqdm(total=total_pages, desc="Downloading svgs", unit="svg", disable=not show_progress) as pbar:
             while True:
                 file_url_with_counter = file_url.format(counter, counter)
                 try:
@@ -59,6 +61,7 @@ class BookContentDownloader():
 
     def download_images(self, svg_dir, url, show_progress=False):
         svg_files = os.listdir(svg_dir)
+        total_image = None
         images_urls = []
 
         for file in svg_files:
@@ -70,9 +73,11 @@ class BookContentDownloader():
             if matches:
                 images_urls.extend(matches)
 
+        total_image = len(images_urls) if show_progress else None
+
         # This shows a progress bar for the download if the show_progress
         # parameter is set to True. Otherwise, it just downloads the files.
-        with tqdm.tqdm(total=len(images_urls), desc="Downloading images", unit="image", disable=not show_progress) as pbar:
+        with tqdm.tqdm(total=total_image, desc="Downloading images", unit="image", disable=not show_progress) as pbar:
             for xlink_href in images_urls:
                 image_url = f"{url}/{xlink_href}"
                 response = self.session.get(image_url, timeout=5)
