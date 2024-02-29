@@ -1,4 +1,4 @@
-# Digi4-2-book
+# Digi4-2-pdf
 
 This project allows you to download your school books from Digi4School, a service where you can enter codes to access Books online. This works by downloading all the Files and Images and then Converting it to PDFs.
 
