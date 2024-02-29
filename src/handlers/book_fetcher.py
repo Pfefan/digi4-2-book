@@ -51,37 +51,37 @@ class BookDataRetriever:
         down_dir = Path('download') / data[0]
         os.makedirs(down_dir, exist_ok=True)
 
-        print("Getting tokens" + ' '*50, end="\r")
+        print("Authenticating" + ' '*50, end="\r")
         url = AuthAndTokenHandler().get_bookurl(data, session)
 
-        print("Downloading SVG files" + ' '*50, end="\r")
-        svg_success = download.download_svgs(down_dir, url)
+        svg_success = download.download_svgs(down_dir, url, show_progress=True)
         if not svg_success:
             print("Failed to download SVG files.\n")
             shutil.rmtree(down_dir)
             return
 
-        print("Downloading images" + ' '*50, end="\r")
-        img_success = download.download_images(down_dir, url)
+        img_success = download.download_images(down_dir, url, show_progress=True)
         if not img_success:
             print("Failed to download images.\n")
             shutil.rmtree(down_dir)
             return
 
-        print("Converting to PDF" + ' '*50, end="\r")
-        svg_success, error_code = self.conv.convert_all_svgs_to_pdf(down_dir, data[2])
+        svg_success, error_code = self.conv.convert_all_svgs_to_pdf(down_dir, data[2], show_progress=True)
 
         if svg_success:
             if error_code == "missingsize":
                 print("The size parameter is missing in the SVG, which could potentially lead to incorrect scaling in the PDF.", end="\r")
                 print("\n")
-            print(f"Downloaded '{data[2]}' in {time.perf_counter() - starttime} seconds \n")
+
+            time_taken = time.perf_counter() - starttime
+            minutes, seconds = divmod(time_taken, 60)
+            print(f"Downloaded '{data[2]}' in {int(minutes)} minutes and {seconds:.2f} seconds.\n")
         else:
             print(f"Error Converting to pdf: {error_code}")
             shutil.rmtree(down_dir)
             return
         shutil.rmtree(down_dir)
-    
+
     def download_all_books(self, data, session):
         if session is None:
             raise ValueError("Session is not initialized.")

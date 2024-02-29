@@ -1,7 +1,8 @@
 import glob
 import os
+import tqdm
 import xml.etree.ElementTree as ET
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import cairosvg
@@ -41,7 +42,7 @@ class SVGtoPDFConverter:
 
         return pdf_file
 
-    def convert_all_svgs_to_pdf(self, svg_path, filename):
+    def convert_all_svgs_to_pdf(self, svg_path, filename, show_progress=False):
         """
         Convert all SVG files in a directory to PDF.
 
@@ -59,7 +60,7 @@ class SVGtoPDFConverter:
 
         svg_files = glob.glob(os.path.join(svg_path, '*.svg'))
         svg_files.sort(key=lambda x: int(Path(x).stem))
-        total_pdfs = len(svg_files)
+        total_pdfs = len(svg_files) if show_progress else None
 
         filename = slugify(filename) + ".pdf"
         output_pdf = Path("output") / filename
@@ -70,11 +71,13 @@ class SVGtoPDFConverter:
             merger = PdfMerger()
 
             with ProcessPoolExecutor() as executor:
-                pdf_files = executor.map(self.convert_single_svg_to_pdf, svg_files,
-                                         [svg_path] * len(svg_files), [use_normal_mode] * len(svg_files))
+                future_to_pdf = {executor.submit(self.convert_single_svg_to_pdf, svg_file, svg_path, use_normal_mode): svg_file for svg_file in svg_files}
 
-                for pdf_file in pdf_files:
-                    merger.append(pdf_file)
+                with tqdm.tqdm(total=total_pdfs, desc="Converting svgs to pdf", unit="pdf", disable=not show_progress) as pbar:
+                    for future in as_completed(future_to_pdf):
+                        pdf_file = future.result()
+                        merger.append(pdf_file)
+                        pbar.update()
 
             merger.write(output_pdf)
         except Exception as e:
