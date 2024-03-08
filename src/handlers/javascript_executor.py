@@ -1,24 +1,29 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from config_handler import ConfigHandler
-import time
+from selenium.webdriver.support.ui import WebDriverWait
+
+from handlers.config_handler import ConfigHandler
+
 
 class Executor():
     LOGIN_URL = "https://digi4school.at/"
     def __init__(self):
-        self.options = Options()
-        self.options.add_argument("--headless")  # Run in headless mode
-        self.options.add_argument("--no-sandbox")  # Bypass OS security model
-        self.options.add_argument("--disable-dev-shm-usage")  # Overcome limited resource problems
-        self.options.add_argument("--disable-renderer-backgrounding")  # Ensure Renderer process never throttles its priority
-        self.options.add_argument("--disable-background-timer-throttling")  # Disable task throttling of timer tasks from background pages
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--silent")
+        options.add_argument("--log-level=3")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-renderer-backgrounding")
+        options.add_argument("--disable-background-timer-throttling")
         prefs = {"profile.managed_default_content_settings.images": 2}
-        self.options.add_experimental_option("prefs", prefs)
-        self.driver = webdriver.Chrome(options=self.options)
+        options.add_experimental_option("prefs", prefs)
+        self.driver = webdriver.Chrome(options=options)
         self.driver.minimize_window()
+        self.login()
 
     def login(self):
         config_data = ConfigHandler().get_config()
@@ -34,18 +39,3 @@ class Executor():
         result = self.driver.execute_script(js_code)
         self.driver.quit()
         return result
-
-if __name__ == "__main__":
-    js_code = """
-    var pageNumbers = [];
-    $("#goBtn").children().each(function() {
-        pageNumbers.push(parseInt($(this).val()));
-    });
-    return pageNumbers.length;
-    """
-    start_time = time.time()
-    executor = Executor()
-    executor.login()
-    executor.execute_js("https://digi4school.at/ebook/10vqygp964ze", js_code)
-    end_time = time.time()
-    print(f"Execution time: {end_time - start_time} seconds")
