@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from config_handler import ConfigHandler
+import time
 
 class Executor():
     LOGIN_URL = "https://digi4school.at/"
@@ -27,13 +28,12 @@ class Executor():
         self.driver.find_element(By.CSS_SELECTOR, 'form#login button').click()
 
     def execute_js(self, url, js_code):
+        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, 'shelf')))
         self.driver.get(url)
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
         result = self.driver.execute_script(js_code)
-        print(result)
-
-    def quit(self):
         self.driver.quit()
+        return result
 
 if __name__ == "__main__":
     js_code = """
@@ -43,8 +43,9 @@ if __name__ == "__main__":
     });
     return pageNumbers.length;
     """
-
+    start_time = time.time()
     executor = Executor()
     executor.login()
     executor.execute_js("https://digi4school.at/ebook/10vqygp964ze", js_code)
-    executor.quit()
+    end_time = time.time()
+    print(f"Execution time: {end_time - start_time} seconds")
