@@ -97,7 +97,7 @@ class AuthAndTokenHandler:
             id_element = soup.select_one('a[href*="index.html"]')
             if id_element:
                 id_value = id_element['href'].split('/')[-2]
-                return f"{redirect_url}/{id_value}"
+                return redirect_url + id_value
 
         return redirect_url
 

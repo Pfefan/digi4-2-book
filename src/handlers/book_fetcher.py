@@ -8,9 +8,9 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from handlers.authentication import AuthAndTokenHandler
-from handlers.book_downloader import BookContentDownloader
-from handlers.pdf_convert import SVGtoPDFConverter
+from .authentication import AuthAndTokenHandler
+from .book_downloader import BookContentDownloader
+from .pdf_convert import SVGtoPDFConverter
 
 
 class BookDataRetriever:
