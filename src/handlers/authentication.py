@@ -3,10 +3,11 @@ This module contains the Authentication class for handling user authentication a
 for accessing the Digi4School platform.
 """
 import re
+import os
 
 from bs4 import BeautifulSoup
 
-from handlers.config_handler import ConfigHandler
+from .config_handler import ConfigHandler
 
 
 class AuthAndTokenHandler:
@@ -20,6 +21,21 @@ class AuthAndTokenHandler:
     def __init__(self):
         pass
 
+    def get_data(self):
+        if os.getenv('EMAIL'):  # Check if it's a test environment
+            login_payload = {
+                'email': os.getenv('EMAIL'),
+                'password': os.getenv('PASSWORD')
+            }
+        else:
+            config_data = ConfigHandler().get_config()
+            login_payload = {
+                'email': config_data['email'],
+                'password': config_data['password']
+            }
+        return login_payload
+
+
     def login_user(self, session):
         """
         Logs in a user using the provided session.
@@ -31,13 +47,7 @@ class AuthAndTokenHandler:
             tuple: A tuple containing a boolean value indicating the login status (True for success, False for failure)
                    and the updated session object.
         """
-        login_payload = {
-            'email': 'email',
-            'password': 'password'
-        }
-        config_data = ConfigHandler().get_config()
-        login_payload["email"] = config_data["email"]
-        login_payload["password"] = config_data["password"]
+        login_payload = self.get_data()
         response = session.post(self.LOGIN_URL, data=login_payload, timeout=5)
 
         if str(response.content, 'utf-8') == "OK":
@@ -45,7 +55,7 @@ class AuthAndTokenHandler:
         elif str(response.content, 'utf-8') == "KO":
             return (False, session)
 
-    def get_bookurl(self, data, session):
+    def token_processing(self, data, session):
         """
         Processes lti request which is needed for authentication.
 
@@ -87,7 +97,7 @@ class AuthAndTokenHandler:
             id_element = soup.select_one('a[href*="index.html"]')
             if id_element:
                 id_value = id_element['href'].split('/')[-2]
-                return f"{redirect_url}/{id_value}"
+                return redirect_url + id_value
 
         return redirect_url
 
