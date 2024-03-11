@@ -1,7 +1,6 @@
 import os
 
 import pytest
-import time
 import requests
 from dotenv import load_dotenv
 
@@ -19,15 +18,6 @@ class TestAUTH:
         auth = AuthAndTokenHandler()
         login_status, updated_session = auth.login_user(session)
         assert login_status is True
-        assert updated_session is session
-
-    def test_login_user_failure(self):
-        session = requests.Session()
-        auth = AuthAndTokenHandler()
-        os.environ['EMAIL'] = "WrongEmail"
-        os.environ['PASSWORD'] = "WrongPassword"
-        login_status, updated_session = auth.login_user(session)
-        assert login_status is False
         assert updated_session is session
 
     def test_token_processing(self):
@@ -50,3 +40,12 @@ class TestAUTH:
         data = [book for book in data if book[2] == 'English Unlimited HTL 4/5, Schülerbuch mit Audio-CD und CD-ROM und E-Book'][0]
         url = auth.token_processing(data, session)
         assert url == 'https://a.digi4school.at/ebook/' + data[0] + '/1001'
+
+    def test_login_user_failure(self):
+        session = requests.Session()
+        auth = AuthAndTokenHandler()
+        os.environ['EMAIL'] = "WrongEmail"
+        os.environ['PASSWORD'] = "WrongPassword"
+        login_status, updated_session = auth.login_user(session)
+        assert login_status is False
+        assert updated_session is session
