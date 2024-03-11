@@ -6,6 +6,7 @@ __pycache__/
 download/
 output/
 *.ini
+.vscode/
 
 # C extensions
 *.so

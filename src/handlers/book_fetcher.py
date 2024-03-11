@@ -52,7 +52,7 @@ class BookDataRetriever:
         os.makedirs(down_dir, exist_ok=True)
 
         print("Authenticating" + ' '*50, end="\r")
-        url = AuthAndTokenHandler().get_bookurl(data, session)
+        url = AuthAndTokenHandler().token_processing(data, session)
 
         svg_success = download.download_svgs(down_dir, url, show_progress=True)
         if not svg_success:
@@ -90,7 +90,7 @@ class BookDataRetriever:
             down_dir = Path('download') / book[0]
             os.makedirs(down_dir, exist_ok=True)
             
-            url = AuthAndTokenHandler().get_bookurl(book, session)
+            url = AuthAndTokenHandler().token_processing(book, session)
 
             temp_session = copy.deepcopy(session)
             download = BookContentDownloader(temp_session)
