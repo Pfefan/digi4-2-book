@@ -22,7 +22,7 @@ class AuthAndTokenHandler:
         pass
 
     def get_data(self):
-        if os.getenv('TEST_ENV'):  # Check if it's a test environment
+        if os.getenv('EMAIL'):  # Check if it's a test environment
             login_payload = {
                 'email': os.getenv('EMAIL'),
                 'password': os.getenv('PASSWORD')
