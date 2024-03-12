@@ -39,3 +39,10 @@ class Executor():
         result = self.driver.execute_script(js_code)
         self.driver.quit()
         return result
+
+    def find_first_non_titlepage(self, url):
+        js_query = """
+        for (var pageNumber = 1; isNaN(encodePageNumber(pageNumber)); pageNumber++);
+        return pageNumber;
+        """
+        return self.execute_js(url, js_query)

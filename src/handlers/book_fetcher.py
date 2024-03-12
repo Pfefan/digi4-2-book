@@ -43,6 +43,46 @@ class BookDataRetriever:
 
         return books
 
+    def download_page(self, data, session: requests.Session, start_page=None, end_page=None):
+        if session is None or ('ad_session_id' not in session.cookies and 'digi4s' not in session.cookies):
+            raise RuntimeError("Session is not initialized or user is not authenticated.")
+
+        download = BookContentDownloader(session)
+        starttime = time.perf_counter()
+        down_dir = Path('download') / data[0]
+        os.makedirs(down_dir, exist_ok=True)
+
+        print("Authenticating" + ' '*50, end="\r")
+        url = AuthAndTokenHandler().token_processing(data, session)
+
+        svg_success = download.download_pages(down_dir, url, start_page, end_page, show_progress=True)
+        if not svg_success:
+            print("Failed to download SVG files.\n")
+            shutil.rmtree(down_dir)
+            return
+
+        """img_success = download.download_images(down_dir, url, show_progress=True)
+        if not img_success:
+            print("Failed to download images.\n")
+            shutil.rmtree(down_dir)
+            return
+
+        svg_success, error_code = self.conv.convert_all_svgs_to_pdf(down_dir, data[2], show_progress=True)
+
+        if svg_success:
+            if error_code == "missingsize":
+                print("The size parameter is missing in the SVG, which could potentially lead to incorrect scaling in the PDF.", end="\r")
+                print("\n")
+
+            time_taken = time.perf_counter() - starttime
+            minutes, seconds = divmod(time_taken, 60)
+            print(f"Downloaded '{data[2]}' in {int(minutes)} minutes and {seconds:.2f} seconds.\n")
+        else:
+            print(f"Error Converting to pdf: {error_code}")
+            shutil.rmtree(down_dir)
+            return
+        shutil.rmtree(down_dir)"""
+
     def download_single_book(self, data, session: requests.Session):
         if session is None or ('ad_session_id' not in session.cookies and 'digi4s' not in session.cookies):
             raise RuntimeError("Session is not initialized or user is not authenticated.")

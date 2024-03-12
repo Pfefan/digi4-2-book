@@ -69,10 +69,15 @@ class CommandHandler:
         if args[0] == "book" and len(args) == 2:
             book_id = args[1]
             self.download_book(book_id)
-        elif args[0] == "book" and args[2] == "page" and len(args) == 4 :
+        elif args[0] == "book" and args[2] == "page" and len(args) == 4:
             book_id = args[1]
-            page_num = args[3]
-            self.download_page(book_id, page_num)
+            start_page = args[3]
+            self.download_page(book_id, start_page)
+        elif args[0] == "book" and args[2] == "page" and len(args) == 5:
+            book_id = args[1]
+            start_page = args[3]
+            end_page = args[4]
+            self.download_page(book_id, start_page, end_page)
         elif args[0] == "all" and len(args) == 1:
             self.download_all_books()
         else:
@@ -90,6 +95,11 @@ class CommandHandler:
         data = self.digi4school.get_book_list(self.session)
         self.digi4school.download_all_books(data, self.session)
 
-    def download_page(self, book_id, page_num):
-        # TODO: send book id and page number to the class that handles the download of a selected page
-        pass
+    def download_page(self, book_id, start_page, end_page=None):
+        if int(book_id) < 0:
+            print("Invalid book_id")
+            return
+
+        # TODO: Add check for valid page numbers
+        data = self.digi4school.get_book_list(self.session)[int(book_id)-1]
+        self.digi4school.download_page(data, self.session, int(start_page), int(end_page) if end_page else None)

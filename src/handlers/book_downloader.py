@@ -5,6 +5,7 @@ import tqdm
 
 import requests
 from requests.exceptions import HTTPError, RequestException
+from .javascript_executor import Executor
 
 class BookContentDownloader():
     def __init__(self, session) -> None:
@@ -58,6 +59,28 @@ class BookContentDownloader():
                 pbar.update(1)
 
         return True
+
+    def download_pages(self, down_dir, url, start_page, end_page, show_progress=False):
+        executor = Executor()
+        first_non_titlepage = executor.find_first_non_titlepage(url)
+
+        special_book_url: bool = False
+        file_url = None
+        total_pages = end_page - start_page + 1 if end_page else 1
+        print(total_pages)
+
+        response = self.session.get(f"{url}/1.svg", timeout=5)
+        if response.status_code != 404:
+            file_url = f"{url}/{{}}.svg"
+        else:
+            response = self.session.get(f"{url}/1/1.svg", timeout=5)
+            if response.status_code != 404:
+                file_url = f"{url}/{{}}/{{}}.svg"
+                special_book_url = True
+            else:
+                return False
+        
+        
 
     def download_images(self, svg_dir, url, show_progress=False):
         svg_files = os.listdir(svg_dir)
