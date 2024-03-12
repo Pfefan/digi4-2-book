@@ -3,6 +3,7 @@ import copy
 import os
 import shutil
 import time
+import requests
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -22,10 +23,10 @@ class BookDataRetriever:
 
         os.makedirs('download', exist_ok=True)
 
-    def get_book_list(self, session):
+    def get_book_list(self, session: requests.Session):
         books = []
-        if session is None:
-            raise ValueError("Session is not initialized.")
+        if session is None or ('ad_session_id' not in session.cookies and 'digi4s' not in session.cookies):
+            raise RuntimeError("Session is not initialized or user is not authenticated.")
 
         response = session.get(self.books_list_url, timeout=5)
 
@@ -42,9 +43,9 @@ class BookDataRetriever:
 
         return books
 
-    def download_single_book(self, data, session):
-        if session is None:
-            raise ValueError("Session is not initialized.")
+    def download_single_book(self, data, session: requests.Session):
+        if session is None or ('ad_session_id' not in session.cookies and 'digi4s' not in session.cookies):
+            raise RuntimeError("Session is not initialized or user is not authenticated.")
 
         download = BookContentDownloader(session)
         starttime = time.perf_counter()
@@ -82,9 +83,9 @@ class BookDataRetriever:
             return
         shutil.rmtree(down_dir)
 
-    def download_all_books(self, data, session):
-        if session is None:
-            raise ValueError("Session is not initialized.")
+    def download_all_books(self, data, session: requests.Session):
+        if session is None or ('ad_session_id' not in session.cookies and 'digi4s' not in session.cookies):
+            raise RuntimeError("Session is not initialized or user is not authenticated.")
 
         def download_book(book):
             down_dir = Path('download') / book[0]

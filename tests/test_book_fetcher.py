@@ -3,10 +3,13 @@ from unittest.mock import Mock, patch
 from requests import Session
 from src.handlers.book_fetcher import BookDataRetriever
 
-class TestBookFetcher:
+class TestGetBooks:
     def test_get_book_list_success(self):
         book_fetcher = BookDataRetriever()
         session = Session()
+
+        session.cookies.set('ad_session_id', 'mock_value')
+        session.cookies.set('digi4s', 'mock_value')
 
         mock_response = Mock()
         mock_response.content = '''
@@ -35,9 +38,18 @@ class TestBookFetcher:
 
     def test_get_book_list_session_not_initialized(self):
         book_fetcher = BookDataRetriever()
-        session = Session()
+        session = None
 
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(RuntimeError) as e:
             book_fetcher.get_book_list(session)
 
-        assert str(e.value) == "Session is not initialized."
+        assert str(e.value) == "Session is not initialized or user is not authenticated."
+
+    def test_get_book_list_session_not_authenticated(self):
+        book_fetcher = BookDataRetriever()
+        session = Session()
+
+        with pytest.raises(RuntimeError) as e:
+            book_fetcher.get_book_list(session)
+
+        assert str(e.value) == "Session is not initialized or user is not authenticated."
