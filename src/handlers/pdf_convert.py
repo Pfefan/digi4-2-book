@@ -6,7 +6,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import cairosvg
-from PyPDF2 import PdfMerger
+from pypdf import PdfWriter
 from slugify import slugify
 
 
@@ -68,7 +68,7 @@ class SVGtoPDFConverter:
         use_normal_mode = self.check_valid_svgsize(svg_files[0])
 
         try:
-            merger = PdfMerger()
+            merger = PdfWriter()
 
             with ProcessPoolExecutor() as executor:
                 future_to_pdf = {executor.submit(self.convert_single_svg_to_pdf, svg_file, svg_path, use_normal_mode): svg_file for svg_file in svg_files}
