@@ -1,6 +1,6 @@
 beautifulsoup4
 CairoSVG
-PyPDF2
+pypdf
 python-slugify
 Requests
 tqdm
