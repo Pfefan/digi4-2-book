@@ -30,3 +30,6 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+        env:
+          EMAIL: ${{ secrets.EMAIL }}
+          PASSWORD: ${{ secrets.PASSWORD }}
