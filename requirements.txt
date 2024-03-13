@@ -1,6 +1,9 @@
 beautifulsoup4
 CairoSVG
 pypdf
+pytest
+python-dotenv
 python-slugify
 Requests
+selenium
 tqdm
