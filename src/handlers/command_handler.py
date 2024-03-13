@@ -47,10 +47,12 @@ class CommandHandler:
 
     def help(self):
         print("List of available commands:")
-        print("list-books - List all available books")
-        print("download book <book_id> - Download a specific book")
-        print("download all - Download all books")
-        print("help - Display this help message \n")
+        print("- list-books - List all available books")
+        print("- download book <book_id> - Download a specific book")
+        print("- download all - Download all books")
+        print("- download book <book_id> page <page> - Download a specific page from a book")
+        print("- download book <book_id> page <start_page> <end_page> - Download a specific range of pages from a book")
+        print("- help - Display this help message \n")
 
     def list_books(self):
         data = self.digi4school.get_book_list(self.session)

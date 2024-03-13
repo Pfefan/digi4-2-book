@@ -12,6 +12,7 @@ from tqdm import tqdm
 from .authentication import AuthAndTokenHandler
 from .book_downloader import BookContentDownloader
 from .pdf_convert import SVGtoPDFConverter
+from .javascript_executor import Executor
 
 
 class BookDataRetriever:
@@ -52,16 +53,21 @@ class BookDataRetriever:
         down_dir = Path('download') / data[0]
         os.makedirs(down_dir, exist_ok=True)
 
+        print("Getting first non-titlepage" + ' '*50, end="\r")
+        url = AuthAndTokenHandler().token_processing(data, session)
+        executor = Executor()
+        first_non_titlepage = executor.find_first_non_titlepage(url)
+
         print("Authenticating" + ' '*50, end="\r")
         url = AuthAndTokenHandler().token_processing(data, session)
 
-        svg_success = download.download_pages(down_dir, url, start_page, end_page, show_progress=True)
+        svg_success = download.download_pages(down_dir, url, start_page, end_page, first_non_titlepage, show_progress=True)
         if not svg_success:
             print("Failed to download SVG files.\n")
             shutil.rmtree(down_dir)
             return
 
-        """img_success = download.download_images(down_dir, url, show_progress=True)
+        img_success = download.download_images(down_dir, url, show_progress=True)
         if not img_success:
             print("Failed to download images.\n")
             shutil.rmtree(down_dir)
@@ -81,7 +87,7 @@ class BookDataRetriever:
             print(f"Error Converting to pdf: {error_code}")
             shutil.rmtree(down_dir)
             return
-        shutil.rmtree(down_dir)"""
+        shutil.rmtree(down_dir)
 
     def download_single_book(self, data, session: requests.Session):
         if session is None or ('ad_session_id' not in session.cookies and 'digi4s' not in session.cookies):

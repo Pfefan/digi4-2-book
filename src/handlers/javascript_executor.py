@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from handlers.config_handler import ConfigHandler
+from .authentication import AuthAndTokenHandler
 
 
 class Executor():
@@ -26,7 +26,7 @@ class Executor():
         self.login()
 
     def login(self):
-        config_data = ConfigHandler().get_config()
+        config_data = AuthAndTokenHandler().get_data()
         self.driver.get(self.LOGIN_URL)
         self.driver.find_element(By.ID, 'email').send_keys(config_data["email"])
         self.driver.find_element(By.ID, 'password').send_keys(config_data["password"])

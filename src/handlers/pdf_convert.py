@@ -73,18 +73,23 @@ class SVGtoPDFConverter:
             with ProcessPoolExecutor() as executor:
                 future_to_pdf = {executor.submit(self.convert_single_svg_to_pdf, svg_file, svg_path, use_normal_mode): svg_file for svg_file in svg_files}
 
+                pdf_files = []
                 with tqdm.tqdm(total=total_pdfs, desc="Converting svgs to pdf", unit="pdf", disable=not show_progress) as pbar:
                     for future in as_completed(future_to_pdf):
                         pdf_file = future.result()
-                        merger.append(pdf_file)
+                        pdf_files.append(pdf_file)
                         pbar.update()
 
+                pdf_files.sort(key=lambda f: int(Path(f).stem)) # sort the pdfs by their number
+
+                for pdf_file in pdf_files:
+                    merger.append(pdf_file)
+
             merger.write(output_pdf)
-        except Exception as e:
-            return False, str(e)
-        finally:
             if merger is not None:
                 merger.close()
+        except Exception as e:
+            return False, str(e)
 
         if not use_normal_mode:
             return True, "missingsize"
