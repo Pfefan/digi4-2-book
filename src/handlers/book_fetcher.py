@@ -44,7 +44,7 @@ class BookDataRetriever:
 
         return books
 
-    def download_page(self, data, session: requests.Session, start_page=None, end_page=None):
+    def download_page(self, data, session: requests.Session, start_page=None, end_page=None, disable_titlepage_check=False):
         if session is None or ('ad_session_id' not in session.cookies and 'digi4s' not in session.cookies):
             raise RuntimeError("Session is not initialized or user is not authenticated.")
 
@@ -53,10 +53,13 @@ class BookDataRetriever:
         down_dir = Path('download') / data[0]
         os.makedirs(down_dir, exist_ok=True)
 
-        print("Getting first non-titlepage" + ' '*50, end="\r")
-        url = AuthAndTokenHandler().token_processing(data, session)
-        executor = Executor()
-        first_non_titlepage = executor.find_first_non_titlepage(url)
+        if disable_titlepage_check:
+            first_non_titlepage = 1
+        else:
+            print("Getting first non-titlepage" + ' '*50, end="\r")
+            url = AuthAndTokenHandler().token_processing(data, session)
+            executor = Executor()
+            first_non_titlepage = executor.find_first_non_titlepage(url)
 
         print("Authenticating" + ' '*50, end="\r")
         url = AuthAndTokenHandler().token_processing(data, session)

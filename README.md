@@ -6,8 +6,8 @@ This project allows you to download your school books from Digi4School, a servic
 
 - [x] Download single books
 - [x] Download all books that a user owns
-- [ ] Download only a selected page from a book
-- [ ] Download a range of pages from a book
+- [x] Download only a selected page from a book
+- [x] Download a range of pages from a book
 - [ ] Multiple Account Support
 - [ ] Configurable Output Directory
 
