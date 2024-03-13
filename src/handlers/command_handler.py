@@ -23,7 +23,7 @@ class CommandHandler:
     def main(self):
         validconfig = ConfigHandler().check_config()
         if validconfig:
-            login_success, self.session = self.auth.login_user(self.session)
+            login_success = self.auth.login_user(self.session)
             if login_success:
                 self.handler()
             else:

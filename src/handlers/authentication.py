@@ -44,16 +44,15 @@ class AuthAndTokenHandler:
             session (Session): The session object used for making HTTP requests.
 
         Returns:
-            tuple: A tuple containing a boolean value indicating the login status (True for success, False for failure)
-                   and the updated session object.
+            bool: A boolean value indicating the login status (True for success, False for failure)
         """
         login_payload = self.get_data()
         response = session.post(self.LOGIN_URL, data=login_payload, timeout=5)
 
         if str(response.content, 'utf-8') == "OK":
-            return (True, session)
+            return True
         elif str(response.content, 'utf-8') == "KO":
-            return (False, session)
+            return False
 
     def token_processing(self, data, session):
         """
