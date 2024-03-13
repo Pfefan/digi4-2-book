@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from handlers.config_handler import ConfigHandler
+from .authentication import AuthAndTokenHandler
 
 
 class Executor():
@@ -26,7 +26,7 @@ class Executor():
         self.login()
 
     def login(self):
-        config_data = ConfigHandler().get_config()
+        config_data = AuthAndTokenHandler().get_data()
         self.driver.get(self.LOGIN_URL)
         self.driver.find_element(By.ID, 'email').send_keys(config_data["email"])
         self.driver.find_element(By.ID, 'password').send_keys(config_data["password"])
@@ -39,3 +39,10 @@ class Executor():
         result = self.driver.execute_script(js_code)
         self.driver.quit()
         return result
+
+    def find_first_non_titlepage(self, url):
+        js_query = """
+        for (var pageNumber = 1; isNaN(encodePageNumber(pageNumber)); pageNumber++);
+        return pageNumber;
+        """
+        return self.execute_js(url, js_query)

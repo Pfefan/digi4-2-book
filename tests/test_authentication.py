@@ -16,9 +16,8 @@ class TestLogin:
     def test_login_user_success(self):
         session = requests.Session()
         auth = AuthAndTokenHandler()
-        login_status, updated_session = auth.login_user(session)
+        login_status = auth.login_user(session)
         assert login_status is True
-        assert updated_session is session
 
     def test_login_user_failure(self):
         session = requests.Session()
@@ -27,9 +26,8 @@ class TestLogin:
         original_password = os.environ['PASSWORD']
         os.environ['EMAIL'] = "WrongEmail"
         os.environ['PASSWORD'] = "WrongPassword"
-        login_status, updated_session = auth.login_user(session)
+        login_status = auth.login_user(session)
         assert login_status is False
-        assert updated_session is session
         os.environ['EMAIL'] = original_email
         os.environ['PASSWORD'] = original_password
 
@@ -41,7 +39,7 @@ class TestTokenProcessing:
     def test_token_processing(self):
         session = requests.Session()
         auth = AuthAndTokenHandler()
-        login_status, session = auth.login_user(session)
+        login_status = auth.login_user(session)
         assert login_status is True
 
         data = BookDataRetriever().get_book_list(session)[0]
@@ -51,7 +49,7 @@ class TestTokenProcessing:
     def test_token_processing_nested_books(self):
         session = requests.Session()
         auth = AuthAndTokenHandler()
-        login_status, session = auth.login_user(session)
+        login_status = auth.login_user(session)
         assert login_status is True
 
         data = BookDataRetriever().get_book_list(session)

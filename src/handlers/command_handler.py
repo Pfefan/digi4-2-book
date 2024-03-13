@@ -23,7 +23,7 @@ class CommandHandler:
     def main(self):
         validconfig = ConfigHandler().check_config()
         if validconfig:
-            login_success, self.session = self.auth.login_user(self.session)
+            login_success = self.auth.login_user(self.session)
             if login_success:
                 self.handler()
             else:
@@ -47,10 +47,11 @@ class CommandHandler:
 
     def help(self):
         print("List of available commands:")
-        print("list-books - List all available books")
-        print("download book <book_id> - Download a specific book")
-        print("download all - Download all books")
-        print("help - Display this help message \n")
+        print("- list-books - List all available books")
+        print("- download book <book_id> - Download a specific book")
+        print("- download all - Download all books")
+        print("- download book <book_id> page <start_page> [<end_page>] [--disable-check] - Download specific page(s) from a book.")
+        print("- help - Display this help message \n")
 
     def list_books(self):
         data = self.digi4school.get_book_list(self.session)
@@ -69,10 +70,19 @@ class CommandHandler:
         if args[0] == "book" and len(args) == 2:
             book_id = args[1]
             self.download_book(book_id)
-        elif args[0] == "book" and args[2] == "page" and len(args) == 4 :
+        elif args[0] == "book" and args[2] == "page":
             book_id = args[1]
-            page_num = args[3]
-            self.download_page(book_id, page_num)
+            start_page = args[3]
+            end_page = None
+            disable_titlepage_check = False
+            if len(args) > 4:
+                if args[4].isdigit():
+                    end_page = args[4]
+                elif args[4] == "--disable-check":
+                    disable_titlepage_check = True
+            if len(args) > 5 and args[5] == "--disable-check":
+                disable_titlepage_check = True
+            self.download_page(book_id, start_page, end_page, disable_titlepage_check)
         elif args[0] == "all" and len(args) == 1:
             self.download_all_books()
         else:
@@ -90,6 +100,11 @@ class CommandHandler:
         data = self.digi4school.get_book_list(self.session)
         self.digi4school.download_all_books(data, self.session)
 
-    def download_page(self, book_id, page_num):
-        # TODO: send book id and page number to the class that handles the download of a selected page
-        pass
+    def download_page(self, book_id, start_page, end_page=None, disable_titlepage_check=False):
+        if int(book_id) < 0:
+            print("Invalid book_id")
+            return
+
+        # TODO: Add check for valid page numbers
+        data = self.digi4school.get_book_list(self.session)[int(book_id)-1]
+        self.digi4school.download_page(data, self.session, int(start_page), int(end_page) if end_page else None, disable_titlepage_check)

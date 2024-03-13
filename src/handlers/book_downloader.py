@@ -15,16 +15,17 @@ class BookContentDownloader():
         file_url = None
         total_pages = None
 
-        response = self.session.get(f"{url}/1.svg", timeout=5)
+        response = self.session.get(f"{url}1.svg", timeout=5)
         if response.status_code != 404:
-            file_url = f"{url}/{{}}.svg"
+            file_url = f"{url}{{}}.svg"
         else:
-            response = self.session.get(f"{url}/1/1.svg", timeout=5)
+            response = self.session.get(f"{url}1/1.svg", timeout=5)
             if response.status_code != 404:
-                file_url = f"{url}/{{}}/{{}}.svg"
+                file_url = f"{url}{{}}/{{}}.svg"
                 special_book_url = True
             else:
                 return False
+
 
         total_pages = self.get_total_pages(file_url) if show_progress else None
         counter = 1
@@ -58,6 +59,53 @@ class BookContentDownloader():
                 pbar.update(1)
 
         return True
+
+    def download_pages(self, down_dir, url, start_page, end_page, first_non_titlepage, show_progress=False):
+        special_book_url: bool = False
+        file_url = None
+        total_page_range = end_page - start_page + 1 if end_page else 1
+        end_page = end_page if end_page else start_page
+
+        response = self.session.get(f"{url}1.svg", timeout=5)
+        if response.status_code != 404:
+            file_url = f"{url}{{}}.svg"
+        else:
+            response = self.session.get(f"{url}1/1.svg", timeout=5)
+            if response.status_code != 404:
+                file_url = f"{url}{{}}/{{}}.svg"
+                special_book_url = True
+            else:
+                return False
+            
+        counter = start_page + first_non_titlepage - 1
+        # This shows a progress bar for the download if the show_progress
+        # parameter is set to True. Otherwise, it just downloads the files.
+        with tqdm.tqdm(total=total_page_range, desc="Downloading svgs", unit="svg", disable=not show_progress) as pbar:
+            while counter <= end_page + first_non_titlepage - 1:
+                file_url_with_counter = file_url.format(counter, counter)
+                try:
+                    response = self.session.get(file_url_with_counter, timeout=5)
+                    if response.status_code == 404:
+                        if counter == 1:
+                            return False
+                        break
+                    response.raise_for_status()
+                except (RequestException, HTTPError):
+                    print(f"Error downloading {file_url_with_counter}")
+                    return False
+
+                svg_text = response.text
+                if special_book_url:
+                    svg_text = self.modify_svg_text(svg_text, counter)
+
+                with open(f"{down_dir}/{counter}.svg", "w+", encoding="utf8") as svg_file:
+                    svg_file.write(svg_text)
+
+                counter += 1
+                pbar.update(1)
+
+        return True
+        
 
     def download_images(self, svg_dir, url, show_progress=False):
         svg_files = os.listdir(svg_dir)
