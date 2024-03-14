@@ -15,7 +15,6 @@ class ConfigHandler:
             }
             with open(self.config_file, 'w+', encoding="utf-8") as configfile:
                 config.write(configfile)
-            print("No Config file!")
             return False
         else:
             config.read(self.config_file)
@@ -29,11 +28,9 @@ class ConfigHandler:
                 }
                 with open(self.config_file, 'w+', encoding="utf-8") as configfile:
                     config.write(configfile)
-                print("Config file structure was incorrect!")
                 return False
 
         if email == "email" or password == "password":
-            print("Config not set!")
             return False
         else:
             return True
@@ -42,3 +39,12 @@ class ConfigHandler:
         config = RawConfigParser()
         config.read(self.config_file)
         return config['DEFAULT']
+
+    def write_config(self, email, password):
+        config = RawConfigParser()
+        config['DEFAULT'] = {
+            'email': email,
+            'password': password,
+        }
+        with open(self.config_file, 'w+', encoding="utf-8") as configfile:
+            config.write(configfile)

@@ -18,7 +18,6 @@ class TestConfigHandler:
         assert os.path.isfile(config_handler.config_file)
         config = RawConfigParser()
         config.read(config_handler.config_file)
-        print(config['DEFAULT'])
         assert config['DEFAULT']['email'] == 'email'
         assert config['DEFAULT']['password'] == 'password'
 
