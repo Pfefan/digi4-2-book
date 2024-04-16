@@ -8,6 +8,7 @@ class TestConfigHandler:
     @pytest.fixture
     def config_handler(self):
         with tempfile.NamedTemporaryFile(delete=False) as temp:
+            temp.close()
             yield ConfigHandler(config_file=temp.name)
             os.remove(temp.name)
 
