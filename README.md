@@ -1,6 +1,6 @@
 # Digi4-2-pdf
 
-This project allows you to download your school books from Digi4School, a service where you can enter codes to access Books online. This works by downloading all the Files and Images and then Converting it to PDFs.
+This project allows you to download your school books from Digi4School, a service where you can enter codes to access books online. This works by downloading all the files and images and then converting them to PDFs.
 
 ## Features
 
@@ -13,18 +13,7 @@ This project allows you to download your school books from Digi4School, a servic
 
 ## Installation
 
-The installation process varies depending on your operating system.
-
-### Linux
-
-On Linux, you need to install the required python packages:
-
-```bash
-pip install -r requirements.txt
-```
-
-### Windows
-On Windows, you need to install GTK for Windows Runtime Environment Installer from the latest releases. You can download it from [here](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases). After installing it, you need to install the required packages:
+Run this command to install the nessasary libaries on which this project depends.
 
 ```bash
 pip install -r requirements.txt
@@ -32,3 +21,4 @@ pip install -r requirements.txt
 
 ## Disclaimer
 This project is only for educational purposes. Don't download books with this tool please.
+

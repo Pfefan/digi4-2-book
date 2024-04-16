@@ -1,11 +1,10 @@
 import getpass
-import os
 
 import requests
 
-from handlers.authentication import AuthAndTokenHandler
-from handlers.book_fetcher import BookDataRetriever
-from handlers.config_handler import ConfigHandler
+from .authentication import AuthAndTokenHandler
+from .book_fetcher import BookDataRetriever
+from .config_handler import ConfigHandler
 
 
 class CommandHandler:
