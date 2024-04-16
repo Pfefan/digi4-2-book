@@ -4,6 +4,7 @@ import os
 import requests
 
 from handlers.authentication import AuthAndTokenHandler
+from handlers.book_fetcher import BookDataRetriever
 from handlers.config_handler import ConfigHandler
 
 
@@ -14,23 +15,13 @@ class CommandHandler:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
         })
         self.auth = AuthAndTokenHandler()
+        self.digi4school = BookDataRetriever()
 
         self.commands = {
             "list-books": self.list_books,
             "download": self.download,
             "help": self.help,
         }
-
-        os.makedirs('dlls', exist_ok=True)
-        """url = 'http://example.com/path/to/your.dll'
-        response = requests.get(url)
-
-        dll_path = os.path.join('dlls', 'libcairo-2.dll')
-        with open(dll_path, 'wb') as f:
-            f.write(response.content)"""
-        os.environ['PATH'] = os.path.abspath('dlls') + ';' + os.environ['PATH']
-        from handlers.book_fetcher import BookDataRetriever
-        self.digi4school = BookDataRetriever()
 
     def main(self):
         config_handler = ConfigHandler()
