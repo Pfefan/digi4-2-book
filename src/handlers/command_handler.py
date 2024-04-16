@@ -1,4 +1,5 @@
 import requests
+import getpass
 
 from handlers.authentication import AuthAndTokenHandler
 from handlers.book_fetcher import BookDataRetriever
@@ -21,13 +22,21 @@ class CommandHandler:
         }
 
     def main(self):
-        validconfig = ConfigHandler().check_config()
+        config_handler = ConfigHandler()
+        validconfig = config_handler.check_config()
         if validconfig:
             login_success = self.auth.login_user(self.session)
             if login_success:
                 self.handler()
             else:
-                print("Invalid user name or password in config")
+                print("Login failed. Please check your credentials and try again.")
+        else:
+            print("No or Invalid Config. Please enter valid credentials:")
+            email = input("Email: ")
+            password = getpass.getpass("Password: ")
+            config_handler.write_config(email, password)
+            print("\n")
+            self.main()
 
     def handler(self):
         print("Welcome to Digi4-books!!!\n")

@@ -3,33 +3,48 @@ from configparser import RawConfigParser
 
 
 class ConfigHandler:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, config_file='config.ini'):
+        self.config_file = config_file
 
     def check_config(self) -> bool:
-        if not os.path.isfile("config.ini"):
-            config = RawConfigParser()
-
+        config = RawConfigParser()
+        if not os.path.isfile(self.config_file):
             config['DEFAULT'] = {
                 'email': 'email',
                 'password': 'password',
             }
-            with open('config.ini', 'w+', encoding="utf-8") as configfile:
+            with open(self.config_file, 'w+', encoding="utf-8") as configfile:
                 config.write(configfile)
-            print("No Config file!!")
             return False
         else:
-            config = RawConfigParser()
-            config.read('config.ini')
-            config = config['DEFAULT']
-
-            if config["email"] == "email" or config["password"] == "password":
-                print("Config not set!!!")
+            config.read(self.config_file)
+            try:
+                email = config['DEFAULT']['email']
+                password = config['DEFAULT']['password']
+            except KeyError:
+                config['DEFAULT'] = {
+                    'email': 'email',
+                    'password': 'password',
+                }
+                with open(self.config_file, 'w+', encoding="utf-8") as configfile:
+                    config.write(configfile)
                 return False
 
+        if email == "email" or password == "password":
+            return False
+        else:
             return True
 
     def get_config(self):
         config = RawConfigParser()
-        config.read('config.ini')
+        config.read(self.config_file)
         return config['DEFAULT']
+
+    def write_config(self, email, password):
+        config = RawConfigParser()
+        config['DEFAULT'] = {
+            'email': email,
+            'password': password,
+        }
+        with open(self.config_file, 'w+', encoding="utf-8") as configfile:
+            config.write(configfile)

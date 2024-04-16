@@ -11,21 +11,13 @@ class BookContentDownloader():
         self.session: requests.Session = session
 
     def download_svgs(self, down_dir, url, show_progress=False):
-        special_book_url: bool = False
-        file_url = None
         total_pages = None
+        print(f"downdir: {down_dir}")
+        print(f"url: {url}")
 
-        response = self.session.get(f"{url}1.svg", timeout=5)
-        if response.status_code != 404:
-            file_url = f"{url}{{}}.svg"
-        else:
-            response = self.session.get(f"{url}1/1.svg", timeout=5)
-            if response.status_code != 404:
-                file_url = f"{url}{{}}/{{}}.svg"
-                special_book_url = True
-            else:
-                return False
-
+        file_url, special_book_url = self.get_file_url(url)
+        if file_url is None:
+            return False
 
         total_pages = self.get_total_pages(file_url) if show_progress else None
         counter = 1
@@ -61,21 +53,12 @@ class BookContentDownloader():
         return True
 
     def download_pages(self, down_dir, url, start_page, end_page, first_non_titlepage, show_progress=False):
-        special_book_url: bool = False
-        file_url = None
         total_page_range = end_page - start_page + 1 if end_page else 1
         end_page = end_page if end_page else start_page
 
-        response = self.session.get(f"{url}1.svg", timeout=5)
-        if response.status_code != 404:
-            file_url = f"{url}{{}}.svg"
-        else:
-            response = self.session.get(f"{url}1/1.svg", timeout=5)
-            if response.status_code != 404:
-                file_url = f"{url}{{}}/{{}}.svg"
-                special_book_url = True
-            else:
-                return False
+        file_url, special_book_url = self.get_file_url(url)
+        if file_url is None:
+            return False
             
         counter = start_page + first_non_titlepage - 1
         # This shows a progress bar for the download if the show_progress
@@ -163,3 +146,13 @@ class BookContentDownloader():
             else:
                 low = mid + 1
         return high
+
+    def get_file_url(self, url):
+        response = self.session.get(f"{url}1.svg", timeout=5)
+        if response.status_code != 404:
+            return f"{url}{{}}.svg", False
+        else:
+            response = self.session.get(f"{url}1/1.svg", timeout=5)
+            if response.status_code != 404:
+                return f"{url}{{}}/{{}}.svg", True
+        return None, False
