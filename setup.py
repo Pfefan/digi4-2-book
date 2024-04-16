@@ -16,7 +16,7 @@ setup(
     install_requires=[
         'beautifulsoup4',
         'CairoSVG',
-        'PyPDF2',
+        'pypdf',
         'pytest',
         'python-dotenv',
         'python-slugify',
