@@ -1,9 +1,10 @@
-import requests
 import getpass
 
-from handlers.authentication import AuthAndTokenHandler
-from handlers.book_fetcher import BookDataRetriever
-from handlers.config_handler import ConfigHandler
+import requests
+
+from .authentication import AuthAndTokenHandler
+from .book_fetcher import BookDataRetriever
+from .config_handler import ConfigHandler
 
 
 class CommandHandler:
@@ -12,8 +13,8 @@ class CommandHandler:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
         })
-        self.digi4school = BookDataRetriever()
         self.auth = AuthAndTokenHandler()
+        self.digi4school = BookDataRetriever()
 
         self.commands = {
             "list-books": self.list_books,
@@ -39,12 +40,14 @@ class CommandHandler:
             self.main()
 
     def handler(self):
-        print("Welcome to Digi4-books!!!\n")
+        print("Welcome to digi4school-2-pdf!!!\n")
         while True:
             command = input("Enter command >: ")
             self.execute_command(command)
 
     def execute_command(self, command):
+        if not command.strip():
+            return
         command_name, *args = command.split()
         if command_name in self.commands:
             try:

@@ -12,8 +12,6 @@ class BookContentDownloader():
 
     def download_svgs(self, down_dir, url, show_progress=False):
         total_pages = None
-        print(f"downdir: {down_dir}")
-        print(f"url: {url}")
 
         file_url, special_book_url = self.get_file_url(url)
         if file_url is None:
@@ -32,6 +30,8 @@ class BookContentDownloader():
                     if response.status_code == 404:
                         if counter == 1:
                             return False
+                        break
+                    if counter > 1000:
                         break
                     response.raise_for_status()
 
@@ -88,7 +88,7 @@ class BookContentDownloader():
                 pbar.update(1)
 
         return True
-        
+
 
     def download_images(self, svg_dir, url, show_progress=False):
         svg_files = os.listdir(svg_dir)
