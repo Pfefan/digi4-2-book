@@ -19,6 +19,11 @@ Run this command to install the nessasary libaries on which this project depends
 pip install -r requirements.txt
 ```
 
+Then run the Programm with
+```bash
+python main.py
+```
+
 ## Disclaimer
 This project is only for educational purposes. Don't download books with this tool please.
 

@@ -40,12 +40,14 @@ class CommandHandler:
             self.main()
 
     def handler(self):
-        print("Welcome to Digi4-books!!!\n")
+        print("Welcome to digi4school-2-pdf!!!\n")
         while True:
             command = input("Enter command >: ")
             self.execute_command(command)
 
     def execute_command(self, command):
+        if not command.strip():
+            return
         command_name, *args = command.split()
         if command_name in self.commands:
             try:
