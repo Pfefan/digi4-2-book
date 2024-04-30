@@ -3,6 +3,8 @@ import os
 import platform
 import requests
 
+from tqdm import tqdm
+
 def load_dll_files():
     """Loads necessary DLL files."""
     base_url = ("https://raw.githubusercontent.com/tschoonj/"
@@ -18,9 +20,12 @@ def load_dll_files():
     ]
 
     os.makedirs('dlls', exist_ok=True)
-    for dll in dll_files:
-        dll_path = os.path.join('dlls', dll)
-        if not os.path.exists(dll_path):
+    missing_dlls = [dll for dll in dll_files if not os.path.exists(os.path.join('dlls', dll))]
+
+    if missing_dlls:
+        print("Downloading missing DLL files...")
+        for dll in tqdm(missing_dlls):
+            dll_path = os.path.join('dlls', dll)
             url = f"{base_url}/{dll}"
             response = requests.get(url, timeout=5)
             with open(dll_path, 'wb') as file:
